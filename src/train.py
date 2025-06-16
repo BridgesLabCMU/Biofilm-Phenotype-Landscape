@@ -42,68 +42,67 @@ weights_loc = f"../{args["weights_loc"]}"
 
 
 
-def train_model(model, optimizer, criterion, hdf5_filename, num_epochs, batch_size):
+def train_model(model, optimizer, criterion, dataloader, num_epochs, batch_size):
+    exit()
     embedding_dims = model.model.ln_final.normalized_shape[0]
-    with h5py.File(hdf5_filename) as f:
-        for epoch in range(num_epochs):
-            model.train()
+    for epoch in range(num_epochs):
+        model.train()
+        
+        running_loss = 0.0
+                
+        for i, _ in enumerate(dataloader):
+            batch = f"batch_{i}"
+            print(f"Batch {i + 1} / {len(f.keys())}")
+            embeddings1 = torch.empty(batch_size, embedding_dims)
+            embeddings2 = torch.empty(batch_size, embedding_dims)
+            batch_start = time.time()
+            optimizer.zero_grad()
+
+            videos = torch.tensor(f[batch]["videos"][()], device=device)
+            strains = torch.tensor(f[batch]["strains"][()], device=device)
             
-            running_loss = 0.0
-                    
-            for i, _ in enumerate(f.keys()):
-                batch = f"batch_{i}"
-                print(f"Batch {i + 1} / {len(f.keys())}")
-                embeddings1 = torch.empty(batch_size, embedding_dims)
-                embeddings2 = torch.empty(batch_size, embedding_dims)
-                batch_start = time.time()
-                optimizer.zero_grad()
+            augmented1 = videos[0]
+            augmented2 = videos[1]
+            
+            
+            
+            
+            for j, (video1, video2) in enumerate(zip(augmented1, augmented2)):
+                # print("Current mem allocated", round(torch.cuda.memory_allocated() / 1000000000, 2), "GB")
+                
+                
+                # images1 = []
+                # images2 = []
+                # for k, (frame1, frame2) in enumerate(zip(video1, video2)):
+                #     image1 = transforms.functional.to_pil_image(frame1, mode="RGB")
+                #     image2 = transforms.functional.to_pil_image(frame2, mode="RGB")
+                #     images1.append(image1)
+                #     images2.append(image2)
+                # images1[0].save("../videos/augmented1.gif", save_all=True, append_images=images1[1:], duration=100, loop=0)
+                # images2[0].save("../videos/augmented2.gif", save_all=True, append_images=images2[1:], duration=100, loop=0)
+                # if j == 9:
+                #     exit()
+                
+                embedding1 = model(video1, "train")
+                embedding2 = model(video2, "train")
+                
+                
+                
+                embeddings1[j] = embedding1
+                embeddings2[j] = embedding2
+            
+            # embeddings = torch.cat((embeddings1, embeddings2), dim=0)
+            # loss = criterion(embeddings, strains)
+            similarity, loss = criterion(embeddings1, embeddings2)
+            loss.backward()
+            optimizer.step()
+            
+            running_loss += loss.item()
+            
+            print(pd.DataFrame(similarity))
+            print(f"Loss: {loss.item():.4f}, Time: {time.time() - batch_start} seconds")
 
-                videos = torch.tensor(f[batch]["videos"][()], device=device)
-                strains = torch.tensor(f[batch]["strains"][()], device=device)
-                
-                augmented1 = videos[0]
-                augmented2 = videos[1]
-                
-                
-                
-                
-                for j, (video1, video2) in enumerate(zip(augmented1, augmented2)):
-                    # print("Current mem allocated", round(torch.cuda.memory_allocated() / 1000000000, 2), "GB")
-                    
-                    
-                    # images1 = []
-                    # images2 = []
-                    # for k, (frame1, frame2) in enumerate(zip(video1, video2)):
-                    #     image1 = transforms.functional.to_pil_image(frame1, mode="RGB")
-                    #     image2 = transforms.functional.to_pil_image(frame2, mode="RGB")
-                    #     images1.append(image1)
-                    #     images2.append(image2)
-                    # images1[0].save("../videos/augmented1.gif", save_all=True, append_images=images1[1:], duration=100, loop=0)
-                    # images2[0].save("../videos/augmented2.gif", save_all=True, append_images=images2[1:], duration=100, loop=0)
-                    # if j == 9:
-                    #     exit()
-                    
-                    embedding1 = model(video1, "train")
-                    embedding2 = model(video2, "train")
-                    
-                    
-                    
-                    embeddings1[j] = embedding1
-                    embeddings2[j] = embedding2
-                
-                # embeddings = torch.cat((embeddings1, embeddings2), dim=0)
-                # loss = criterion(embeddings, strains)
-                similarity, loss = criterion(embeddings1, embeddings2)
-                loss.backward()
-                optimizer.step()
-                
-                running_loss += loss.item()
-                
-                print(pd.DataFrame(similarity))
-                print(f"Loss: {loss.item():.4f}, Time: {time.time() - batch_start} seconds")
-
-            print(f"Epoch: {epoch + 1} / {num_epochs}, Loss: {running_loss:.4f}")
-        f.close()
+        print(f"Epoch: {epoch + 1} / {num_epochs}, Loss: {running_loss:.4f}")
 
 
 
@@ -135,7 +134,7 @@ if weights_filename not in os.listdir(weights_loc):
     finetune_start = time.time()
     optimizer = torch.optim.Adam(vision_transformer.parameters(), lr=0.0000001, eps=1e-4)
     criterion = SimCLR()
-    
+
     train_model(vision_transformer, optimizer, criterion, f"{dataloader_loc}/{hdf5_filename}", num_epochs=num_epochs, batch_size=batch_size)
     print(f"Finetuning model took {time.time() - finetune_start} seconds")
     print()

@@ -1,0 +1,151 @@
+
+
+import torch
+from torch.utils.data import DataLoader
+import torchvision.transforms as transforms
+from torchvision.models import vit_b_32, ViT_B_32_Weights
+import clip
+
+from model.utils import device
+from model.loss import SimCLR, MultiClassNPairLoss, SupCon
+from model.model import ViT
+
+import numpy as np
+import pandas as pd
+
+import os
+import json
+import h5py
+import re
+import time
+
+with open("../config/config.json", "r") as f:
+    args = json.load(f)
+f.close()
+
+for param in [args["train"]["dataloader"], args["train"]["weights"]]:
+    if not param:
+        continue
+    regex_match = re.match(r".*\.pth", param)
+    if not regex_match:
+        print("ERROR: Input and output files must follow the format filename.pth")
+        exit()
+
+dataloader_filename = args["train"]["dataloader"]
+weights_filename = args["train"]["weights"]
+hdf5_filename = f"{dataloader_filename[:dataloader_filename.find('.pth')]}.hdf5"
+
+
+data_loc = f"../{args["data_loc"]}"
+dataloader_loc = f"../{args["dataloader_loc"]}"
+weights_loc = f"../{args["weights_loc"]}"
+
+
+
+def train_model(model, optimizer, criterion, hdf5_filename, num_epochs, batch_size):
+    embedding_dims = model.model.ln_final.normalized_shape[0]
+    with h5py.File(hdf5_filename) as f:
+        for epoch in range(num_epochs):
+            model.train()
+            
+            running_loss = 0.0
+                    
+            for i, _ in enumerate(f.keys()):
+                batch = f"batch_{i}"
+                print(f"Batch {i + 1} / {len(f.keys())}")
+                embeddings1 = torch.empty(batch_size, embedding_dims)
+                embeddings2 = torch.empty(batch_size, embedding_dims)
+                batch_start = time.time()
+                optimizer.zero_grad()
+
+                videos = torch.tensor(f[batch]["videos"][()], device=device)
+                strains = torch.tensor(f[batch]["strains"][()], device=device)
+                
+                augmented1 = videos[0]
+                augmented2 = videos[1]
+                
+                
+                
+                
+                for j, (video1, video2) in enumerate(zip(augmented1, augmented2)):
+                    # print("Current mem allocated", round(torch.cuda.memory_allocated() / 1000000000, 2), "GB")
+                    
+                    
+                    # images1 = []
+                    # images2 = []
+                    # for k, (frame1, frame2) in enumerate(zip(video1, video2)):
+                    #     image1 = transforms.functional.to_pil_image(frame1, mode="RGB")
+                    #     image2 = transforms.functional.to_pil_image(frame2, mode="RGB")
+                    #     images1.append(image1)
+                    #     images2.append(image2)
+                    # images1[0].save("../videos/augmented1.gif", save_all=True, append_images=images1[1:], duration=100, loop=0)
+                    # images2[0].save("../videos/augmented2.gif", save_all=True, append_images=images2[1:], duration=100, loop=0)
+                    # if j == 9:
+                    #     exit()
+                    
+                    embedding1 = model(video1, "train")
+                    embedding2 = model(video2, "train")
+                    
+                    
+                    
+                    embeddings1[j] = embedding1
+                    embeddings2[j] = embedding2
+                
+                # embeddings = torch.cat((embeddings1, embeddings2), dim=0)
+                # loss = criterion(embeddings, strains)
+                similarity, loss = criterion(embeddings1, embeddings2)
+                loss.backward()
+                optimizer.step()
+                
+                running_loss += loss.item()
+                
+                print(pd.DataFrame(similarity))
+                print(f"Loss: {loss.item():.4f}, Time: {time.time() - batch_start} seconds")
+
+            print(f"Epoch: {epoch + 1} / {num_epochs}, Loss: {running_loss:.4f}")
+        f.close()
+
+
+
+
+
+num_frames = 25
+num_epochs = 100
+keep_strains = ['WT', 'flaA', 'hapR', 'luxO_D47E', 'manA', 'potD1', 'rbmB', 'vpsL', 'vpvC_W240R']
+classes = np.unique(keep_strains) # reorder classes
+embedding_dims = 512
+batch_size = 144
+
+
+if weights_filename not in os.listdir(weights_loc):
+    print(f"Loading pretrained weights...")
+    model_load_start = time.time()
+    model, _ = clip.load("ViT-B/32", device=device)
+    for param in model.transformer.resblocks[:-3].parameters():
+        param.requires_grad = False
+    for param in model.transformer.resblocks[-3:].parameters():
+        param.requires_grad = True
+        
+    vision_transformer = ViT(model).to(device)
+    print(f"Loading pre-trained VIT model took {time.time() - model_load_start} seconds")
+    print()
+    
+    print(f"Finetuning model...")
+    print("Initial mem allocated", torch.cuda.memory_allocated())
+    finetune_start = time.time()
+    optimizer = torch.optim.Adam(vision_transformer.parameters(), lr=0.0000001, eps=1e-4)
+    criterion = SimCLR()
+    
+    train_model(vision_transformer, optimizer, criterion, f"{dataloader_loc}/{hdf5_filename}", num_epochs=num_epochs, batch_size=batch_size)
+    print(f"Finetuning model took {time.time() - finetune_start} seconds")
+    print()
+    
+    print("Saving finetuned model weights...")
+    weights_save_start = time.time()
+    torch.save(vision_transformer.state_dict(), f"{weights_loc}/{weights_filename}")
+    print(f"Saving model weights took {time.time() - weights_save_start} seconds")
+    print()
+    
+    
+
+

@@ -7,7 +7,7 @@
         "weights": "VIT_SimCLR_NTXENT_CLIP1.pth"
     },
     "eval" : {
-        "dataloader": "VIT_SimCLR_NTXENT_CLIP.pth",
-        "weights": "VIT_SimCLR_NTXENT_CLIP.pth"
+        "dataloader": "VIT_SimCLR_NTXENT_CLIP1.pth",
+        "weights": "VIT_SimCLR_NTXENT_CLIP1.pth"
     }
 }

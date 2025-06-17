@@ -46,14 +46,23 @@ class ViT(nn.Module):
     def forward(self, x, mode):
         # x shape - num_frames, channels, height, width
         
+
         
-        x = self.model.encode_image(x)
+        
+
         # x = x.last_hidden_state
-        x = PositionalEncoding(x)
-        x = x.to(device)
-        classes = self.output(x)
+        # x = PositionalEncoding(x)
+        
+        # classes = self.output(x)
         if mode == "train":
+            embeddings = torch.empty(x.shape[0], 512, device=device)
+            for i, image in enumerate(x):
+                embedding = self.model.encode_image(image.unsqueeze(0))
+                embeddings[i] = embedding
+            x = PositionalEncoding(embeddings)
+            x = x.to(device)
             projection_x = self.projection(x)
             return projection_x
         elif mode == "eval":
             return x
+        

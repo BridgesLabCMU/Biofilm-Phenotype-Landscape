@@ -49,12 +49,12 @@ if dataloader_filename in os.listdir(dataloader_loc):
         print(f"Loading data took {time.time() - dataloader_start} seconds")
         print()
 
-        # print("Writing file to hdf5...")
-        # convert_to_hdf5_time = time.time()
-        # tdl.save_to_hdf5(dataloader, f"{dataloader_loc}/{hdf5_filename}")
-        # print(f"Converting .pth file to .hdf5 took {time.time() - convert_to_hdf5_time} seconds")
+        print("Writing file to hdf5...")
+        convert_to_hdf5_time = time.time()
+        tdl.save_to_hdf5(dataloader, f"{dataloader_loc}/{hdf5_filename}")
+        print(f"Converting .pth file to .hdf5 took {time.time() - convert_to_hdf5_time} seconds")
 
-        # print()
+        print()
         
 
 elif dataloader_filename not in os.listdir(dataloader_loc):
@@ -62,7 +62,7 @@ elif dataloader_filename not in os.listdir(dataloader_loc):
     dataloader_start = time.time()
     data_dict = tdl.build_dataloader(data_loc, num_frames, keep_strains)
     dataset = tdl.DictionaryDataset(data_dict)
-    dataloader = DataLoader(dataset, batch_size=1, num_workers=4, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=144, num_workers=4, shuffle=False)
 
 
     print(f"Loading data took {time.time() - dataloader_start} seconds")
@@ -74,16 +74,16 @@ elif dataloader_filename not in os.listdir(dataloader_loc):
     print(f"Saving dataloader took {time.time() - dataloader_save_start} seconds")
     print()
 
-    # print("Writing file to hdf5...")
-    # print(f"Loading data from {dataloader_filename}...")
-    # dataloader_start = time.time()
-    # dataloader = torch.load(f"{dataloader_loc}/{dataloader_filename}", weights_only=False)
-    # print(f"Loading data took {time.time() - dataloader_start} seconds")
-    # print()
+    print("Writing file to hdf5...")
+    print(f"Loading data from {dataloader_filename}...")
+    dataloader_start = time.time()
+    dataloader = torch.load(f"{dataloader_loc}/{dataloader_filename}", weights_only=False)
+    print(f"Loading data took {time.time() - dataloader_start} seconds")
+    print()
 
     
-    # convert_to_hdf5_time = time.time()
-    # tdl.save_to_hdf5(dataloader, f"{dataloader_loc}/{hdf5_filename}")
-    # print(f"Converting .pth file to .hdf5 took {time.time() - convert_to_hdf5_time} seconds")
+    convert_to_hdf5_time = time.time()
+    tdl.save_to_hdf5(dataloader, f"{dataloader_loc}/{hdf5_filename}")
+    print(f"Converting .pth file to .hdf5 took {time.time() - convert_to_hdf5_time} seconds")
 
-    # print()
+    print()

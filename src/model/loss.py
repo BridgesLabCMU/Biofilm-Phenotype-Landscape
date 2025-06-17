@@ -63,7 +63,7 @@ class SimCLR(nn.Module):
         return similarity_np, loss
     
     
-class BYOL(nn.Module):
+# class BYOL(nn.Module):
     
 
 class SupCon(nn.Module):
@@ -144,7 +144,6 @@ class SupCon(nn.Module):
         # Loss
         loss = - (self.temperature / self.base_temperature) * mean_log_prob_pos
         loss = loss.view(anchor_count, batch_size).mean()
-
         return loss
 
 

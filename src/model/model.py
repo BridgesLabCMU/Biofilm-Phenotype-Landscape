@@ -2,13 +2,13 @@ from .utils import *
 
 
 
-def PositionalEncoding(embeddings, max_len=512):
+def PositionalEncoding(embeddings, max_len=128):
     model_dims = embeddings.shape[1]
 
 
     two_i = torch.arange(0, model_dims, 2, dtype=torch.float32, device=device)
 
-    div_term = 1 / (10000 ** (two_i / 512))
+    div_term = 1 / (10000 ** (two_i / max_len))
     position = torch.arange(0,max_len,dtype=torch.float, device=device).unsqueeze(1)
 
     encoding = torch.zeros(max_len, model_dims, device=device)
@@ -19,7 +19,7 @@ def PositionalEncoding(embeddings, max_len=512):
     return torch.mean(image_embeddings, axis=0)
         
 class ViT(nn.Module):
-    def __init__(self, model, num_frames=25, embedding_dims=512, num_classes=9):
+    def __init__(self, model, num_frames=25, embedding_dims=128, num_classes=9):
         """
         Loads Vision Transformer from An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale.
         
@@ -28,10 +28,13 @@ class ViT(nn.Module):
         embedding_dims - output embedding dimension 
         """
         super(ViT, self).__init__()
-        # model.heads = nn.Sequential(
-        #     nn.Linear(in_features=768, out_features=embedding_dims),
-        # )
+
         self.model = model
+        
+        self.head = nn.Sequential(
+            nn.Linear(in_features=512, out_features=embedding_dims, dtype=torch.half),
+        )
+        
         self.output = nn.Sequential(
             nn.Linear(embedding_dims, num_classes),
             nn.Softmax(-1)
@@ -55,14 +58,15 @@ class ViT(nn.Module):
         
         # classes = self.output(x)
         if mode == "train":
-            embeddings = torch.empty(x.shape[0], 512, device=device)
+            embeddings = torch.empty(x.shape[0], 128)
             for i, image in enumerate(x):
-                embedding = self.model.encode_image(image.unsqueeze(0))
-                embeddings[i] = embedding
-            x = PositionalEncoding(embeddings)
-            x = x.to(device)
-            projection_x = self.projection(x)
-            return projection_x
+                frame_embeddings = self.model.encode_image(image)
+                frame_embeddings = self.head(frame_embeddings)
+                video_embeddings = PositionalEncoding(frame_embeddings)
+                video_embeddings = video_embeddings.to(device)
+                projection_x = self.projection(video_embeddings)
+                embeddings[i] = projection_x
+            return embeddings
         elif mode == "eval":
             return x
         

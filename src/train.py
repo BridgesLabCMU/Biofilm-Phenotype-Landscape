@@ -42,29 +42,39 @@ weights_loc = f"../{args["weights_loc"]}"
 
 
 
+
+
 def train_model(model, optimizer, criterion, dataloader, batch_size, num_epochs):
+    """
+    Desc: Main training function, uses model paramete, optimizer, loss function, dataloader, batch_size, and number of epochs
+    Takes batch_size samples of augmented videos 
+    """
     embedding_dims = model.model.ln_final.normalized_shape[0]
+    model.train()
+    
     with h5py.File(dataloader, 'r') as f:
         for epoch in range(num_epochs):
             print(f"Epoch {epoch+1} / {num_epochs}")
-            
-            model.train()
-            
             running_loss = 0.0
-        
+            
             for i, batch in enumerate(f.keys()):
+                # print(round(torch.cuda.memory_allocated() / 1000000000, 2))
                 print(f"Batch {i + 1} / {len(f.keys())}")
-                embeddings1 = torch.empty(batch_size, embedding_dims)
-                embeddings2 = torch.empty(batch_size, embedding_dims)
+
                 batch_start = time.time()
                 optimizer.zero_grad()
                 
                 videos = torch.tensor(f[batch]["videos"][()], device=device)
                 strains = torch.tensor(f[batch]["strains"][()], device=device)
                 
+                
+                
                 augmented1 = videos[0]
                 augmented2 = videos[1]
-
+                    
+                    
+                
+                
             # for i, batch in enumerate(dataloader):
             #     print(f"Batch {i+1} / {len(dataloader)}")
                 
@@ -79,36 +89,16 @@ def train_model(model, optimizer, criterion, dataloader, batch_size, num_epochs)
                                 
                 # augmented1 = augmented1.to(device)
                 # augmented2 = augmented2.to(device)
-                                    
-                for j, (video1, video2) in enumerate(zip(augmented1, augmented2)):
-                    print(f"{j+1} / 144")
-                    # print("Current mem allocated", round(torch.cuda.memory_allocated() / 1000000000, 2), "GB")
-                    
-                    # images1 = []
-                    # images2 = []
-                    # for k, (frame1, frame2) in enumerate(zip(video1, video2)):
-                    #     image1 = transforms.functional.to_pil_image(frame1, mode="RGB")
-                    #     image2 = transforms.functional.to_pil_image(frame2, mode="RGB")
-                    #     images1.append(image1)
-                    #     images2.append(image2)
-                    # images1[0].save("../videos/augmented1.gif", save_all=True, append_images=images1[1:], duration=100, loop=0)
-                    # images2[0].save("../videos/augmented2.gif", save_all=True, append_images=images2[1:], duration=100, loop=0)
-                    # if j == 9:
-                    #     exit()
-                    
-                    embedding1 = model(video1, "train")
-                    embedding2 = model(video2, "train")
-                    
-                    
-                    
-                    embeddings1[j] = embedding1
-                    embeddings2[j] = embedding2
-                    
+                
+                embeddings1 = model(augmented1, "train")
+                optimizer.zero_grad()
+                embeddings2 = model(augmented2, "train")
+
+                
                 
                 # embeddings = torch.cat((embeddings1, embeddings2), dim=0)
                 # loss = criterion(embeddings, strains)
                 similarity, loss = criterion(embeddings1, embeddings2)
-                print(loss)
                 loss.backward()
                 optimizer.step()
                 
@@ -139,25 +129,25 @@ if weights_filename not in os.listdir(weights_loc):
     for param in model.transformer.resblocks[-3:].parameters():
         param.requires_grad = True
         
-    vision_transformer = ViT(model).to(device)
+    vit = ViT(model).to(device)
     print(f"Loading pre-trained VIT model took {time.time() - model_load_start} seconds")
     print()
     
     print(f"Finetuning model...")
     print("Initial mem allocated", torch.cuda.memory_allocated())
     finetune_start = time.time()
-    optimizer = torch.optim.Adam(vision_transformer.parameters(), lr=0.0000001, eps=1e-4)
+    optimizer = torch.optim.Adam(vit.parameters(), lr=0.0000001, eps=1e-4)
     criterion = SimCLR()
 
     # dataloader = torch.load(f"{dataloader_loc}/{dataloader_filename}", weights_only=False)
     
-    train_model(vision_transformer, optimizer, criterion, f"{dataloader_loc}/{hdf5_filename}", batch_size=batch_size, num_epochs=num_epochs)
+    train_model(vit, optimizer, criterion, f"{dataloader_loc}/{hdf5_filename}", batch_size=batch_size, num_epochs=num_epochs)
     print(f"Finetuning model took {time.time() - finetune_start} seconds")
     print()
     
     print("Saving finetuned model weights...")
     weights_save_start = time.time()
-    torch.save(vision_transformer.state_dict(), f"{weights_loc}/{weights_filename}")
+    torch.save(vit.state_dict(), f"{weights_loc}/{weights_filename}")
     print(f"Saving model weights took {time.time() - weights_save_start} seconds")
     print()
     

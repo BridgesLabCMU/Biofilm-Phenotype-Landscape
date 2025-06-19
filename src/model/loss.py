@@ -1,47 +1,10 @@
 from .utils import *
-class SimCLR(nn.Module):
+
+
+class ContrastiveLoss(nn.Module):
     def __init__(self):
-        super(SimCLR).__init__()
-    # def __call__(self, embeddings1, embeddings2, temperature = 1):
-    #     # Normalize embeddings along the embedding dimension
-    #     embeddings1 = F.normalize(embeddings1, dim=1)
-    #     embeddings2 = F.normalize(embeddings2, dim=1)
-        
-    #     batch_size = embeddings1.shape[0]
-        
-    #     # concatenate embedding vectors (vector i and vector i + batch_size are representations from the same image with different augmnetations)
-    #     features = torch.cat([embeddings1, embeddings2], dim=0)  # [2*batch_size, embedding_dims]
-        
-    #     similarity = F.cosine_similarity(features[None, :, :], features[:, None, :], dim=-1) / temperature
-    #     similarity_np = similarity.detach().numpy()
-        
-        
-    #     # Define the positive pairs
-    #     # For example, (0,batch_size), (1,batch_size+1), ... (batch_size-1,2*batch_size-1)
-    #     mask = torch.zeros_like(similarity)
-    #     mask[torch.arange(batch_size), torch.arange(batch_size) + batch_size] = 1.0
-    #     mask[torch.arange(batch_size) + batch_size, torch.arange(batch_size)] = 1.0
-        
-    #     # We need to remove the diagonal elements which are the self similarities
-    #     identity_mask = torch.eye(2 * batch_size, device=similarity.device)
-    #     self_mask = 1.0 - identity_mask
-            
-    #     # Apply masks to get positive and negative pairs
-    #     # positives = torch.sum(similarity * mask, dim=1)  # Get only the positive pair similarities
-    #     positives = similarity
-    #     negatives = similarity * self_mask  # All except self-similarities
-    
-        
-    #     # For each anchor, compute the numerator and denominator of the NT-Xent loss
-    #     # Numerator: exp(sim(anchor, positive) / temperature)
-    #     # Denominator: sum of numerator and exp(sim(anchor, negatives) / temperature)
-    #     numerator = torch.exp(positives)
-    #     denominator = torch.sum(torch.exp(negatives), dim=1)
-        
-    #     # NT-Xent loss
-    #     loss = -torch.log(numerator / (numerator + denominator))
-    #     return similarity_np, loss.mean()
-    def __call__(self, embeddings1, embeddings2, temperature=1):
+        super(ContrastiveLoss).__init__()
+    def NT_XENT(self, embeddings1, embeddings2, temperature = 1):
         batch_size = embeddings1.shape[0]
         
         features = torch.cat([embeddings1, embeddings2], dim=0)
@@ -61,6 +24,33 @@ class SimCLR(nn.Module):
             loss += loss_matrix[i, i + batch_size] + loss_matrix[i + batch_size, i]
         loss /= 2 * batch_size
         return similarity_np, loss
+    def infoNCE(self, embeddings1, embeddings2, temperature = 1):
+        batch_size = embeddings1.shape[0]
+        features = torch.concat([embeddings1, embeddings2], dim=0)
+        similarity = F.cosine_similarity(features.unsqueeze(0), features.unsqueeze(1), dim=-1) / temperature
+        similarity_exp = torch.exp(similarity)
+        similarity_np = similarity.detach().numpy()
+        
+        
+            
+        loss = torch.tensor(0, dtype=torch.float32, device=device)
+        for i in torch.arange(0, batch_size):
+            inv_mask = torch.ones(batch_size, dtype=torch.bool)
+            inv_mask[i] = 0
+            loss += similarity_exp[i, i+batch_size] / torch.sum(similarity_exp[i][:batch_size][inv_mask])
+        loss = -torch.log(loss)
+        # mask_np = mask.detach().numpy()
+        # print(pd.DataFrame(mask_np))
+        return similarity_np, loss
+        
+
+class SimCLR(nn.Module):
+    def __init__(self):
+        super(SimCLR).__init__()
+    def __call__(self, embeddings1, embeddings2, temperature = 1):
+        CL = ContrastiveLoss()
+        return CL.NT_XENT(embeddings1, embeddings2, temperature)
+
     
     
 # class BYOL(nn.Module):

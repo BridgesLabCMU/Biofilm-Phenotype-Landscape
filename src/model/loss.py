@@ -26,19 +26,46 @@ class ContrastiveLoss(nn.Module):
         return similarity_np, loss
     def infoNCE(self, embeddings1, embeddings2, temperature = 1):
         batch_size = embeddings1.shape[0]
+        
+        # concatenate features to get pairwise cosine similarities
         features = torch.concat([embeddings1, embeddings2], dim=0)
+        
+        # cosine similarity
         similarity = F.cosine_similarity(features.unsqueeze(0), features.unsqueeze(1), dim=-1) / temperature
-        similarity_exp = torch.exp(similarity)
         similarity_np = similarity.detach().numpy()
         
         
+        # e^sim
+        similarity_exp = torch.exp(similarity)
+        
+        self_similarity_exp = similarity_exp[:batch_size, :batch_size]
+        aug_similarity_exp = similarity_exp[:batch_size, batch_size:2*batch_size].diag()
+        
+        
+        inv_mask = torch.ones((batch_size, batch_size), dtype=torch.bool)
+        inv_mask.fill_diagonal_(0)
+        
+        self_similarity_exp = self_similarity_exp[inv_mask]
+        self_similarity_exp = self_similarity_exp.view((batch_size, batch_size - 1))
+        
+        
+        
+        numerator = aug_similarity_exp
+        denominator = torch.sum(self_similarity_exp, dim=1)
+        
+        term = torch.div(numerator, denominator)
+        loss = -torch.log(term)
+        loss = torch.mean(loss)
             
-        loss = torch.tensor(0, dtype=torch.float32, device=device)
-        for i in torch.arange(0, batch_size):
-            inv_mask = torch.ones(batch_size, dtype=torch.bool)
-            inv_mask[i] = 0
-            loss += similarity_exp[i, i+batch_size] / torch.sum(similarity_exp[i][:batch_size][inv_mask])
-        loss = -torch.log(loss)
+        # loss = torch.tensor(0, dtype=torch.float32, device=device)
+        # for i in torch.arange(0, batch_size):
+        #     inv_mask = torch.ones(batch_size, dtype=torch.bool)
+        #     inv_mask[i] = 0
+        #     # similarity_exp[i, i+batch_size])
+        #     # print(torch.sum(similarity_exp[i][:batch_size][inv_mask]))
+        #     term = similarity_exp[i, i+batch_size] / torch.sum(similarity_exp[i][:batch_size][inv_mask])
+        #     loss += -torch.log(term) 
+        # loss /= batch_size
         # mask_np = mask.detach().numpy()
         # print(pd.DataFrame(mask_np))
         return similarity_np, loss
@@ -49,7 +76,7 @@ class SimCLR(nn.Module):
         super(SimCLR).__init__()
     def __call__(self, embeddings1, embeddings2, temperature = 1):
         CL = ContrastiveLoss()
-        return CL.NT_XENT(embeddings1, embeddings2, temperature)
+        return CL.infoNCE(embeddings1, embeddings2, temperature)
 
     
     

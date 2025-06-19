@@ -91,7 +91,6 @@ def train_model(model, optimizer, criterion, dataloader, batch_size, num_epochs)
                 # augmented2 = augmented2.to(device)
                 
                 embeddings1 = model(augmented1, "train")
-                optimizer.zero_grad()
                 embeddings2 = model(augmented2, "train")
 
                 
@@ -104,7 +103,7 @@ def train_model(model, optimizer, criterion, dataloader, batch_size, num_epochs)
                 
                 running_loss += loss.item()
                 
-                print(pd.DataFrame(similarity))
+                # print(pd.DataFrame(similarity))
                 print(f"Loss: {loss.item():.4f}, Time: {time.time() - batch_start} seconds")
 
         print(f"Epoch: {epoch + 1} / {num_epochs}, Loss: {running_loss:.4f}")

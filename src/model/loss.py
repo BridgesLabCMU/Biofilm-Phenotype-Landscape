@@ -32,7 +32,7 @@ class ContrastiveLoss(nn.Module):
         
         # cosine similarity
         similarity = F.cosine_similarity(features.unsqueeze(0), features.unsqueeze(1), dim=-1) / temperature
-        similarity_np = similarity.detach().numpy()
+        similarity_np = similarity.detach().cpu().numpy()
         
         
         # e^sim

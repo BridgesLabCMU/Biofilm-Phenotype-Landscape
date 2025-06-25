@@ -58,15 +58,21 @@ class ViT(nn.Module):
         
         # classes = self.output(x)
         if mode == "train":
-            embeddings = torch.empty(x.shape[0], 128)
+            embeddings = torch.empty(x.shape[0], 128, device=device)
             for i, image in enumerate(x):
                 frame_embeddings = self.model.encode_image(image)
                 frame_embeddings = self.head(frame_embeddings)
-                video_embeddings = PositionalEncoding(frame_embeddings)
-                video_embeddings = video_embeddings.to(device)
+                video_embeddings = PositionalEncoding(frame_embeddings).to(device)
                 projection_x = self.projection(video_embeddings)
                 embeddings[i] = projection_x
             return embeddings
         elif mode == "eval":
+            embeddings = torch.empty(x.shape[0], 128, device=device)
+            for i, image in enumerate(x):
+                frame_embeddings = self.model.encode_image(image)
+                frame_embeddings = self.head(frame_embeddings)
+                embeddings[i] = frame_embeddings
+            x = PositionalEncoding(embeddings)
+            x = x.to(device)
             return x
         

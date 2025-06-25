@@ -71,7 +71,7 @@ def train_model(model, optimizer, criterion, dataloader, batch_size, num_epochs)
                 
                 augmented1 = videos[0]
                 augmented2 = videos[1]
-                    
+                
                     
                 
                 

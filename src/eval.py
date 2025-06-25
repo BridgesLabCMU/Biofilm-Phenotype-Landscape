@@ -105,7 +105,7 @@ def eval_model(model, home_dir, num_frames, keep_strains):
         labels_dict[row.iloc[0]] = row.iloc[1]
 
 
-
+    videos = []
     embedding_dim = model.output[0].in_features
     embeddings = np.empty((144 * len(keep_strains), embedding_dim))
     labels = np.array([])
@@ -160,16 +160,21 @@ def eval_model(model, home_dir, num_frames, keep_strains):
                 for image in images:
                     pil_image = Image.fromarray(image)
                     tensor_image = trans(pil_image)
-                    video.append(tensor_image)
-                video = torch.stack(video)
-                video = video.to(device=device)
+                    video.append(tensor_image.unsqueeze(0))
+                video = torch.stack(video).to(device)
                 video_embedding = model(video, "eval")
                 video_embedding = video_embedding.detach().cpu().numpy()
                 embeddings[i] = video_embedding
                 labels = np.append(labels, strain)
-                ids = np.append(ids, f"{plate}_{well}")
-                print()
-                i += 1
+                ids = np.append(ids, f"{plate}_{well}")  
+                i += 1    
+    # print(len(videos))
+    # videos = torch.stack(videos).to(device)
+    # print(videos.shape)
+    # video_embedding = model(videos, "eval")
+    # print(video_embedding.shape)
+    # video_embedding = video_embedding.detach().cpu().numpy()
+    # embeddings[i] = video_embedding
     return embeddings, labels, ids
 
 

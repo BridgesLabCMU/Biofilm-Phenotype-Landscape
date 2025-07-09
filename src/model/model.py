@@ -56,23 +56,25 @@ class ViT(nn.Module):
         # x = x.last_hidden_state
         # x = PositionalEncoding(x)
         
-        # classes = self.output(x)
+        # training mode - compute loss on projection embeddings
         if mode == "train":
             embeddings = torch.empty(x.shape[0], 128, device=device)
             for i, image in enumerate(x):
-                frame_embeddings = self.model.encode_image(image)
+                # print(round(torch.cuda.memory_allocated() / 1000000000, 2))
+                # print(f"Video {i}/{len(x)}")
+                frame_embeddings = self.model.encode_image(image).to(device)
                 frame_embeddings = self.head(frame_embeddings)
                 video_embeddings = PositionalEncoding(frame_embeddings).to(device)
                 projection_x = self.projection(video_embeddings)
                 embeddings[i] = projection_x
             return embeddings
-        elif mode == "eval":
+        # eval mode - evaluate on network embeddings
+        elif mode == "eval": 
             embeddings = torch.empty(x.shape[0], 128, device=device)
             for i, image in enumerate(x):
-                frame_embeddings = self.model.encode_image(image)
+                frame_embeddings = self.model.encode_image(image).to(device)
                 frame_embeddings = self.head(frame_embeddings)
                 embeddings[i] = frame_embeddings
-            x = PositionalEncoding(embeddings)
-            x = x.to(device)
+            x = PositionalEncoding(embeddings).to(device)
             return x
         

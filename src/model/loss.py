@@ -56,27 +56,18 @@ class ContrastiveLoss(nn.Module):
         term = torch.div(numerator, denominator)
         loss = -torch.log(term)
         loss = torch.mean(loss)
-            
-        # loss = torch.tensor(0, dtype=torch.float32, device=device)
-        # for i in torch.arange(0, batch_size):
-        #     inv_mask = torch.ones(batch_size, dtype=torch.bool)
-        #     inv_mask[i] = 0
-        #     # similarity_exp[i, i+batch_size])
-        #     # print(torch.sum(similarity_exp[i][:batch_size][inv_mask]))
-        #     term = similarity_exp[i, i+batch_size] / torch.sum(similarity_exp[i][:batch_size][inv_mask])
-        #     loss += -torch.log(term) 
-        # loss /= batch_size
-        # mask_np = mask.detach().numpy()
-        # print(pd.DataFrame(mask_np))
         return similarity_np, loss
         
 
 class SimCLR(nn.Module):
     def __init__(self):
         super(SimCLR).__init__()
-    def __call__(self, embeddings1, embeddings2, temperature = 1):
+    def __call__(self, embeddings1, embeddings2, loss_fn, temperature = 0.1):
         CL = ContrastiveLoss()
-        return CL.infoNCE(embeddings1, embeddings2, temperature)
+        if loss_fn == "infoNCE":
+            return CL.infoNCE(embeddings1, embeddings2, temperature)
+        elif loss_fn == "NT_XENT":
+            return CL.NT_XENT(embeddings1, embeddings2, temperature)
 
     
     

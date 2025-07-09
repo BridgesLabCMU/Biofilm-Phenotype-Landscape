@@ -1,0 +1,19 @@
+#!/bin/bash
+#SBATCH -N 1
+#SBATCH -p GPU
+#SBATCH -t 10:00:00
+#SBATCH --gpus=h100-80:8
+
+# echo commands to stdout
+set -x
+
+cd /ocean/projects/bio250058p/dboyes/ImageLibrary/src
+
+module load anaconda3
+conda activate vit
+
+torchrun \
+	--standalone \
+	--nnodes=1 \
+	--nproc-per-node=8 \
+	train.py

@@ -62,7 +62,7 @@ elif dataloader_filename not in os.listdir(dataloader_loc):
     dataloader_start = time.time()
     data_dict = tdl.build_dataloader(data_loc, num_frames, keep_strains)
     dataset = tdl.DictionaryDataset(data_dict)
-    dataloader = DataLoader(dataset, batch_size=16, num_workers=4, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=64, num_workers=4, shuffle=False)
 
 
     print(f"Loading data took {time.time() - dataloader_start} seconds")

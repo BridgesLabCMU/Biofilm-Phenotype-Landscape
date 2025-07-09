@@ -1,13 +1,13 @@
 {
     "data_loc": "data",
-    "dataloader_loc": "dataloaders",
-    "weights_loc": "weights",
+    "dataloader_loc": "../dataloaders",
+    "weights_loc": "../weights",
     "train" : {
-        "dataloader": "VIT_SimCLR_NTXENT_CLIP.pth",
-        "weights": "VIT_SimCLR_NTXENT_CLIP.pth"
+        "dataloader": "dataset.pth",
+        "weights": "model.checkpoint"
     },
     "eval" : {
-        "dataloader": "VIT_SimCLR_NTXENT_CLIP.pth",
-        "weights": "VIT_SimCLR_NTXENT_CLIP.pth"
+        "dataloader": "dataset.pth",
+        "weights": "model.checkpoint"
     }
 }

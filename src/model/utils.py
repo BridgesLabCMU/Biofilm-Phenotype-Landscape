@@ -14,7 +14,7 @@ if gpu_count > 1:
     torch.cuda.set_device(rank)
     device=rank
 elif gpu_count == 1:
-    device = "cuda"  
+    device = "cuda"
 else:
     device = "cpu"
 

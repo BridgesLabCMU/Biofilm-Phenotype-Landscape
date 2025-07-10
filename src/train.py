@@ -11,7 +11,7 @@ import torchvision.transforms as transforms
 from torchvision.models import vit_b_32, ViT_B_32_Weights
 import clip
 
-from model.utils import device, local_rank, rank
+from model.utils import device, local_rank, rank, gpu_count
 from model.loss import SimCLR, MultiClassNPairLoss, SupCon
 from model.model import ViT
 
@@ -142,8 +142,6 @@ def main():
         vit = ViT(model)
         vit.to(device)
         
-        gpu_count = int(os.environ['CUDA_VISIBLE_DEVICES'])
-        print("GPU COUNT", gpu_count)
         if gpu_count > 1:
             print(f"Using {gpu_count} GPUs")
             

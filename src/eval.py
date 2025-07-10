@@ -100,7 +100,7 @@ def eval_model(model, home_dir, num_frames, keep_strains):
     
     
     labels_dict = {}
-    labels = pd.read_csv("../data/ReplicatePositions.csv")
+    labels = pd.read_csv("../ReplicatePositions.csv")
     for _, row in labels.iterrows():
         labels_dict[row.iloc[0]] = row.iloc[1]
 

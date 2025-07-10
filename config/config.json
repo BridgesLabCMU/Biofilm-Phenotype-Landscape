@@ -4,10 +4,10 @@
     "weights_loc": "../weights",
     "train" : {
         "dataloader": "dataset.pth",
-        "weights": "model.checkpoint"
+        "weights": "model.pth"
     },
     "eval" : {
         "dataloader": "dataset.pth",
-        "weights": "model.checkpoint"
+        "weights": "model.pth"
     }
 }

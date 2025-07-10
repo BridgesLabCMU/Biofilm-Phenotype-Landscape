@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import os
 
-gpu_count = int(os.environ['CUDA_VISIBLE_DEVICES'])
+gpu_count = int(os.environ['CUDA_VISIBLE_DEVICES'].split(",")[-1])
 if gpu_count > 1:
     local_rank = int(os.environ["LOCAL_RANK"])
     os.environ['CUDA_VISIBLE_DEVICES'] = str(local_rank)

@@ -23,23 +23,24 @@ class RawDictionaryDataset(Dataset):
     def __init__(self, data_dict):
         self.videos = []
         self.strains = []
+        for strain, videos in data_dict.items():
+            for video in videos:
+                self.videos.append(video)
+                self.strains.append(strain)
+        
+        
 
+        
+        self.videos = torch.tensor(np.stack(self.videos), dtype=torch.float32)
+        self.videos = self.videos.expand(-1, -1, 3, -1, -1)
+        self.videos = torch.tensor(np.stack(self.videos))
+        
+        
         self.strain_names, self.strains_numeric = np.unique(self.strains, return_inverse=True)
         
         self.strains_numeric = torch.tensor(self.strains_numeric)
 
         self.strains = self.strains_numeric
-        
-        for strain, video in data_dict.items():
-            self.videos.append(video)
-            self.strains.append(strain)
-
-        
-        self.videos = torch.tensor(np.stack(self.videos), dtype=torch.float32)
-        self.videos = self.videos.squeeze(2)
-        self.videos = self.videos.expand(-1, -1, 3, -1, -1)
-        self.videos = torch.tensor(np.stack(self.videos))
-            
             
     def __getitem__(self, index):
         return self.videos[index], self.strains[index]
@@ -67,7 +68,6 @@ class AugmentedDictionaryDataset(Dataset):
                 self.strains.append(strain)
         
         self.augmented_videos1 = torch.tensor(np.stack(self.augmented_videos1), dtype=torch.float32)
-        self.augmented_videos1 = self.augmented_videos1.squeeze(2)
         self.augmented_videos1 = self.augmented_videos1.expand(-1, -1, 3, -1, -1)
         self.augmented_videos1 = torch.tensor(np.stack(self.augmented_videos1))
 
@@ -108,14 +108,21 @@ class AugmentedDictionaryDataset(Dataset):
 def _convert_image_to_rgb(image):
     return image.convert("RGB")
 
-def _transform(n_pixels):
+def raw_transform(n_pixels):
+    return Compose([
+        Resize(n_pixels, interpolation = InterpolationMode.BICUBIC),
+        _convert_image_to_rgb,
+        ToTensor(),
+        Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+    ])
+    
+def aug_transform(n_pixels):
     rotation_angles = [0, 90, 180, 270]
     random_int = torch.randint(0, 4, (1,))[0].item()
     angle = rotation_angles[random_int]
     return Compose([
         Resize(n_pixels, interpolation = InterpolationMode.BICUBIC),
         CenterCrop(n_pixels),
-        # RandomResizedCrop(n_pixels, interpolation=InterpolationMode.BICUBIC),
         RandomRotation((angle, angle)),
         RandomHorizontalFlip(0.5),
         RandomVerticalFlip(0.5),
@@ -123,7 +130,6 @@ def _transform(n_pixels):
         _convert_image_to_rgb,
         ToTensor(),
         Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
-        # ToPILImage()
     ])
 
 def build_dataloader(home_dir, num_frames, keep_strains):
@@ -136,7 +142,8 @@ def build_dataloader(home_dir, num_frames, keep_strains):
     
    
 
-    data_dict = {}
+    raw_data_dict = {}
+    aug_data_dict = {}
 
     paths = os.listdir(home_dir)
     folders = []
@@ -202,16 +209,19 @@ def build_dataloader(home_dir, num_frames, keep_strains):
                                              start=0,
                                              count=num_frames,
                                              flags=cv2.IMREAD_ANYCOLOR)
-                if strain not in data_dict.keys():
-                    data_dict[strain] = []
+                if strain not in aug_data_dict.keys():
+                    aug_data_dict[strain] = []
+                if strain not in raw_data_dict.keys():
+                    raw_data_dict[strain] = []
 
                 
                 raw_images = []
                 augmented_images1 = []
                 augmented_images2 = []
                 
-                trans1 = _transform(224)
-                trans2 = _transform(224)
+                raw_trans = raw_transform(224)
+                aug_trans1 = aug_transform(224)
+                aug_trans2 = aug_transform(224)
                 
                 for image in images:
                     pil_image = Image.fromarray(image)
@@ -219,12 +229,13 @@ def build_dataloader(home_dir, num_frames, keep_strains):
                     state = torch.get_rng_state()
                     
                     
-                    raw_images.append(pil_image)
+                    raw_image = raw_trans(pil_image)
+                    raw_images.append(raw_image)
                     
-                    augmented_image1 = trans1(pil_image)
+                    augmented_image1 = aug_trans1(pil_image)
                     augmented_images1.append(augmented_image1)
                     
-                    augmented_image2 = trans2(pil_image)
+                    augmented_image2 = aug_trans2(pil_image)
                     augmented_images2.append(augmented_image2)
                     
                     torch.set_rng_state(state)
@@ -238,9 +249,11 @@ def build_dataloader(home_dir, num_frames, keep_strains):
                 #     image1.save(f"../videos/augmented1/frame{k}.png", format="PNG")
                 #     image2.save(f"../videos/augmented2/frame{k}.png", format="PNG")
                 # exit()
-                data_dict[strain].append([np.stack(augmented_images1), np.stack(augmented_images2)])
+                
+                raw_data_dict[strain].append(np.stack(raw_images))
+                aug_data_dict[strain].append([np.stack(augmented_images1), np.stack(augmented_images2)])
                 
                 print()
                 i += 1
-    return data_dict
+    return raw_data_dict, aug_data_dict
 

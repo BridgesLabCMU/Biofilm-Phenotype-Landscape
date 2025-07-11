@@ -33,12 +33,9 @@ weights_loc = f"../{args["weights_loc"]}"
 
 
 
-num_frames = 31
 keep_strains = ['WT', 'flaA', 'hapR', 'luxO_D47E', 'manA', 'potD1', 'rbmB', 'vpsL', 'vpvC_W240R']
 classes = np.unique(keep_strains) # reorder classes
-
-if raw_dataloader_filename not in os.listdir(dataloader_loc) and aug_dataloader_filename not in os.listdir(dataloader_loc):
-    print(f"Loading data into {raw_dataloader_filename} and {aug_dataloader_filename}...")
+num_frames = 31
 if raw_dataloader_filename not in os.listdir(dataloader_loc) and aug_dataloader_filename not in os.listdir(dataloader_loc):
     print(f"Loading data into {raw_dataloader_filename} and {aug_dataloader_filename}...")
     dataloader_start = time.time()
@@ -47,7 +44,9 @@ if raw_dataloader_filename not in os.listdir(dataloader_loc) and aug_dataloader_
     raw_dataset = tdl.RawDictionaryDataset(raw_data_dict)
     aug_dataset = tdl.AugmentedDictionaryDataset(aug_data_dict)
     
-    
+    print("Saving raw dataset...")
     torch.save(raw_dataset, f"{dataloader_loc}/raw_dataset.pth")
+    
+    print("Saving augmented dataset...")
     torch.save(aug_dataset, f"{dataloader_loc}/aug_dataset.pth")
     

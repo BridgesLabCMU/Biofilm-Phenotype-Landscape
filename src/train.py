@@ -4,7 +4,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.utils.data.distributed import DistributedSampler
-from torch.distributed import init_process_group
+from torch.distributed import init_process_group, destroy_process_group
 from torch.optim import Adam
 
 import torchvision.transforms as transforms
@@ -141,7 +141,7 @@ def main():
             
         vit = ViT(model)
         vit.to(device)
-        
+        gpu_count = 8
         if gpu_count > 1:
             print(f"Using {gpu_count} GPUs")
             
@@ -161,7 +161,7 @@ def main():
         print(f"Finetuning model...")
         print("Initial mem allocated", torch.cuda.memory_allocated())
         finetune_start = time.time()
-        optimizer = Adam(vit.parameters(), lr=0.0003, eps=1e-6)
+        optimizer = Adam(vit.parameters(), lr=0.000003, eps=1e-4)
         criterion = SimCLR()
 
 
@@ -179,14 +179,17 @@ def main():
         
         print("Saving finetuned model weights...")
         weights_save_start = time.time()
-        torch.distributed.barrier()
+        
         
         # save model on first gpu
+        torch.distributed.barrier() # wait for all processes to finish
         if rank == 0:
             torch.save(vit.state_dict(), f"{weights_loc}/{weights_filename}")
             
         print(f"Saving model weights took {time.time() - weights_save_start} seconds")
         print()
+        
+        destroy_process_group()
 
 if __name__ == "__main__":
     main()

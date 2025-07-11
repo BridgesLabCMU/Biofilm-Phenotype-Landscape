@@ -24,15 +24,21 @@ for param in [args["train"]["dataloader"], args["train"]["weights"]]:
 
 aug_dataloader_filename = args["train"]["dataloader"]
 raw_dataloader_filename = args["eval"]["dataloader"]
+weights_filename = args["train"]["weights"]
 
 
 data_loc = f"../{args["data_loc"]}"
 dataloader_loc = f"../{args["dataloader_loc"]}"
+weights_loc = f"../{args["weights_loc"]}"
+
+
 
 num_frames = 31
 keep_strains = ['WT', 'flaA', 'hapR', 'luxO_D47E', 'manA', 'potD1', 'rbmB', 'vpsL', 'vpvC_W240R']
 classes = np.unique(keep_strains) # reorder classes
 
+if raw_dataloader_filename not in os.listdir(dataloader_loc) and aug_dataloader_filename not in os.listdir(dataloader_loc):
+    print(f"Loading data into {raw_dataloader_filename} and {aug_dataloader_filename}...")
 if raw_dataloader_filename not in os.listdir(dataloader_loc) and aug_dataloader_filename not in os.listdir(dataloader_loc):
     print(f"Loading data into {raw_dataloader_filename} and {aug_dataloader_filename}...")
     dataloader_start = time.time()

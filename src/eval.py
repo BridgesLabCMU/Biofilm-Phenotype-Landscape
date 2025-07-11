@@ -56,7 +56,7 @@ def eval_model(model, dataloader):
     """
     with torch.no_grad():
         embedding_dim = model.output[0].in_features
-        embeddings = np.empty(len(dataloader), embedding_dim)
+        embeddings = np.empty((len(dataloader), embedding_dim))
         for i, data in enumerate(dataloader):
             print(f"Video {i+1}/{len(dataloader)}")
             video, strain = data[0], data[1]

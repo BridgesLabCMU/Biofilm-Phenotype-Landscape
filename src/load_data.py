@@ -25,7 +25,8 @@ for param in [args["train"]["dataloader"], args["train"]["weights"]]:
         print("ERROR: Input and output files must follow the format filename.pth")
         exit()
 
-dataloader_filename = args["train"]["dataloader"]
+aug_dataloader_filename = args["train"]["dataloader"]
+raw_dataloader_filename = args["eval"]["dataloader"]
 weights_filename = args["train"]["weights"]
 
 
@@ -33,57 +34,19 @@ data_loc = f"../{args["data_loc"]}"
 dataloader_loc = f"../{args["dataloader_loc"]}"
 weights_loc = f"../{args["weights_loc"]}"
 
-
-hdf5_filename = f"{dataloader_filename[:dataloader_filename.find('.pth')]}.hdf5"
-
-
 num_frames = 25
 keep_strains = ['WT', 'flaA', 'hapR', 'luxO_D47E', 'manA', 'potD1', 'rbmB', 'vpsL', 'vpvC_W240R']
 classes = np.unique(keep_strains) # reorder classes
 
-if dataloader_filename in os.listdir(dataloader_loc):
-    if hdf5_filename not in os.listdir(dataloader_loc):
-        print(f"Loading data from {dataloader_filename}...")
-        dataloader_start = time.time()
-        dataloader = torch.load(f"{dataloader_loc}/{dataloader_filename}", weights_only=False)
-        print(f"Loading data took {time.time() - dataloader_start} seconds")
-        print()
-
-        print("Writing file to hdf5...")
-        convert_to_hdf5_time = time.time()
-        tdl.save_to_hdf5(dataloader, f"{dataloader_loc}/{hdf5_filename}")
-        print(f"Converting .pth file to .hdf5 took {time.time() - convert_to_hdf5_time} seconds")
-
-        print()
-        
-
-elif dataloader_filename not in os.listdir(dataloader_loc):
-    print(f"Loading data into {dataloader_filename}...")
+if raw_dataloader_filename not in os.listdir(dataloader_loc) and aug_dataloader_filename not in os.listdir(dataloader_loc):
+    print(f"Loading data into {raw_dataloader_filename} and {aug_dataloader_filename}...")
     dataloader_start = time.time()
-    data_dict = tdl.build_dataloader(data_loc, num_frames, keep_strains)
-    dataset = tdl.DictionaryDataset(data_dict)
-    dataloader = DataLoader(dataset, batch_size=16, num_workers=4, shuffle=False)
-
-
-    print(f"Loading data took {time.time() - dataloader_start} seconds")
-    print()
-
-    print("Saving dataloader...")
-    dataloader_save_start = time.time()
-    torch.save(dataloader, f"{dataloader_loc}/{dataloader_filename}")
-    print(f"Saving dataloader took {time.time() - dataloader_save_start} seconds")
-    print()
-
-    print("Writing file to hdf5...")
-    print(f"Loading data from {dataloader_filename}...")
-    dataloader_start = time.time()
-    dataloader = torch.load(f"{dataloader_loc}/{dataloader_filename}", weights_only=False)
-    print(f"Loading data took {time.time() - dataloader_start} seconds")
-    print()
-
+    raw_data_dict, aug_data_dict = tdl.build_dataloader(data_loc, num_frames, keep_strains)
     
-    convert_to_hdf5_time = time.time()
-    tdl.save_to_hdf5(dataloader, f"{dataloader_loc}/{hdf5_filename}")
-    print(f"Converting .pth file to .hdf5 took {time.time() - convert_to_hdf5_time} seconds")
-
-    print()
+    raw_dataset = tdl.RawDictionaryDataset(raw_data_dict)
+    aug_dataset = tdl.AugmentedDictionaryDataset(aug_data_dict)
+    
+    
+    torch.save(raw_dataset, f"{dataloader_loc}/raw_dataset.pth")
+    torch.save(aug_dataset, f"{dataloader_loc}/aug_dataset.pth")
+    

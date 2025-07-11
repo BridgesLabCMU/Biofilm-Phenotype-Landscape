@@ -19,7 +19,35 @@ import h5py
 
 from natsort import natsorted
 
-class DictionaryDataset(Dataset):
+class RawDictionaryDataset(Dataset):
+    def __init__(self, data_dict):
+        self.videos = []
+        self.strains = []
+
+        self.strain_names, self.strains_numeric = np.unique(self.strains, return_inverse=True)
+        
+        self.strains_numeric = torch.tensor(self.strains_numeric)
+
+        self.strains = self.strains_numeric
+        
+        for strain, video in data_dict.items():
+            self.videos.append(video)
+            self.strains.append(strain)
+
+        
+        self.videos = torch.tensor(np.stack(self.videos), dtype=torch.float32)
+        self.videos = self.videos.squeeze(2)
+        self.videos = self.videos.expand(-1, -1, 3, -1, -1)
+        self.videos = torch.tensor(np.stack(self.videos))
+            
+            
+    def __getitem__(self, index):
+        return self.videos[index], self.strains[index]
+    
+    def __len__(self):
+        return len(self.strains)
+
+class AugmentedDictionaryDataset(Dataset):
     """
     Loads Dataset object from dictionary, dictionary contains number of values equal to size of dataset.
     Generates 2 lists, one with associated class for each sample in dataset, one with associated videos with resized frames.
@@ -64,10 +92,6 @@ class DictionaryDataset(Dataset):
         self.augmented_videos2 = augmented_videos2_copy
         self.strains = strains_copy
         
-        print(len(self.augmented_videos1))
-
-        
-
         self.strain_names, self.strains_numeric = np.unique(self.strains, return_inverse=True)
         
         self.strains_numeric = torch.tensor(self.strains_numeric)
@@ -181,6 +205,8 @@ def build_dataloader(home_dir, num_frames, keep_strains):
                 if strain not in data_dict.keys():
                     data_dict[strain] = []
 
+                
+                raw_images = []
                 augmented_images1 = []
                 augmented_images2 = []
                 
@@ -192,18 +218,18 @@ def build_dataloader(home_dir, num_frames, keep_strains):
                     
                     state = torch.get_rng_state()
                     
+                    
+                    raw_images.append(pil_image)
+                    
                     augmented_image1 = trans1(pil_image)
-                    # augmented_image1 = rotation_transform(augmented_image1)
                     augmented_images1.append(augmented_image1)
                     
                     augmented_image2 = trans2(pil_image)
-                    # augmented_image2 = rotation_transform(augmented_image2)
                     augmented_images2.append(augmented_image2)
                     
                     torch.set_rng_state(state)
                     
 
-                                        
                 # for k, (frame1, frame2) in enumerate(zip(augmented_images1, augmented_images2)):
                         
                 #     image1 = transforms.functional.to_pil_image(frame1, mode="RGB")
@@ -216,35 +242,5 @@ def build_dataloader(home_dir, num_frames, keep_strains):
                 
                 print()
                 i += 1
-        #     if i == 18:
-        #         end = True
-        #         break
-        # if end:
-        #     break
     return data_dict
 
-
-def save_to_hdf5(dataloader, hdf5_filename):
-    with h5py.File(hdf5_filename, 'w') as f:
-        
-        # Iterate over the DataLoader
-        for i, data in enumerate(dataloader):
-            print(f"Batch {i + 1} / {len(dataloader)}")
-            videos1, videos2, strains = data[0], data[1], data[2]
-            
-            # create group for current batch
-            batch_group = f.create_group(f'batch_{i}')
-            
-            # tensor to np array
-
-            videos_1_np = videos1.cpu().numpy()
-            videos_2_np = videos2.cpu().numpy()
-
-            videos_np = np.array([videos_1_np, videos_2_np])
-            strain_np = strains.cpu().numpy()
-
-            # videos dataset inside batch group
-            batch_group.create_dataset('videos', data=videos_np)
-            # strains dataset inside batch group
-            batch_group.create_dataset('strains', data=strain_np)
-        f.close()

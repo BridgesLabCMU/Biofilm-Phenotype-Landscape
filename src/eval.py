@@ -46,7 +46,7 @@ data_loc = f"../{args['data_loc']}"
 dataloader_loc = f"../{args['dataloader_loc']}"
 weights_loc = f"../{args['weights_loc']}"
 
-def eval_model(model, dataloader, keep_strains):
+def eval_model(model, dataloader):
     """
     Computes video embeddings.
     Arguments:
@@ -56,7 +56,7 @@ def eval_model(model, dataloader, keep_strains):
     """
     with torch.no_grad():
         embedding_dim = model.output[0].in_features
-        embeddings = np.empty((144 * len(keep_strains), embedding_dim))
+        embeddings = np.empty(len(dataloader), embedding_dim)
         for i, data in enumerate(dataloader):
             print(f"Video {i+1}/{len(dataloader)}")
             video, strain = data[0], data[1]
@@ -69,8 +69,6 @@ def eval_model(model, dataloader, keep_strains):
 
 
 if __name__ == "__main__":
-    keep_strains = ['WT', 'flaA', 'hapR', 'luxO_D47E', 'manA', 'potD1', 'rbmB', 'vpsL', 'vpvC_W240R']
-    
     if weights_filename in os.listdir(weights_loc):
         with torch.no_grad():
             print(f"Loading finetuned vision transformer weights...")
@@ -90,7 +88,7 @@ if __name__ == "__main__":
             
             print(f"Evaluating model...")
             eval_start = time.time()
-            embeddings, labels, ids = eval_model(vision_transformer, dataloader, keep_strains)
+            embeddings, labels, ids = eval_model(vision_transformer, dataloader)
             print(f"Evaluating model took {time.time() - eval_start} seconds")
             
             

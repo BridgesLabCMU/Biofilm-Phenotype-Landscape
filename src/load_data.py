@@ -35,7 +35,7 @@ weights_loc = f"../{args["weights_loc"]}"
 
 keep_strains = ['WT', 'flaA', 'hapR', 'luxO_D47E', 'manA', 'potD1', 'rbmB', 'vpsL', 'vpvC_W240R']
 classes = np.unique(keep_strains) # reorder classes
-num_frames = 31
+num_frames = 25
 if raw_dataloader_filename not in os.listdir(dataloader_loc) and aug_dataloader_filename not in os.listdir(dataloader_loc):
     print(f"Loading data into {raw_dataloader_filename} and {aug_dataloader_filename}...")
     dataloader_start = time.time()

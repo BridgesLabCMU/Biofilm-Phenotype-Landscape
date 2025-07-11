@@ -244,28 +244,3 @@ def build_dataloader(home_dir, num_frames, keep_strains):
                 i += 1
     return data_dict
 
-
-def save_to_hdf5(dataloader, hdf5_filename):
-    with h5py.File(hdf5_filename, 'w') as f:
-        
-        # Iterate over the DataLoader
-        for i, data in enumerate(dataloader):
-            print(f"Batch {i + 1} / {len(dataloader)}")
-            videos1, videos2, strains = data[0], data[1], data[2]
-            
-            # create group for current batch
-            batch_group = f.create_group(f'batch_{i}')
-            
-            # tensor to np array
-
-            videos_1_np = videos1.cpu().numpy()
-            videos_2_np = videos2.cpu().numpy()
-
-            videos_np = np.array([videos_1_np, videos_2_np])
-            strain_np = strains.cpu().numpy()
-
-            # videos dataset inside batch group
-            batch_group.create_dataset('videos', data=videos_np)
-            # strains dataset inside batch group
-            batch_group.create_dataset('strains', data=strain_np)
-        f.close()

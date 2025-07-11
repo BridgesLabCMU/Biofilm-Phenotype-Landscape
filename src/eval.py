@@ -29,7 +29,7 @@ with open("../config/config.json", "r") as f:
     args = json.load(f)
 f.close()
 
-for param in [args["train"]["dataloader"], args["train"]["weights"]]:
+for param in args["train"]["dataloader"], args["train"]["weights"]:
     if not param:
         continue
     regex_match = re.match(r".*\.pth", param)
@@ -42,9 +42,9 @@ weights_filename = args["train"]["weights"]
 hdf5_filename = f"{dataloader_filename[:dataloader_filename.find('.pth')]}.hdf5"
 
 
-data_loc = f"../{args["data_loc"]}"
-dataloader_loc = f"../{args["dataloader_loc"]}"
-weights_loc = f"../{args["weights_loc"]}"
+data_loc = f"../{args['data_loc']}"
+dataloader_loc = f"../{args['dataloader_loc']}"
+weights_loc = f"../{args['weights_loc']}"
 
 def _convert_image_to_rgb(image):
     return image.convert("RGB")
@@ -100,7 +100,7 @@ def eval_model(model, home_dir, num_frames, keep_strains):
     
     
     labels_dict = {}
-    labels = pd.read_csv("../data/ReplicatePositions.csv")
+    labels = pd.read_csv("../ReplicatePositions.csv")
     for _, row in labels.iterrows():
         labels_dict[row.iloc[0]] = row.iloc[1]
 

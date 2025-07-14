@@ -1,8 +1,5 @@
 import torch
 from torch.utils.data import DataLoader
-import torchvision.transforms as transforms
-from torchvision.models import vit_b_32, ViT_B_32_Weights
-from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, ToPILImage,  Normalize, InterpolationMode, RandomResizedCrop, GaussianBlur
 import clip
 
 from model.utils import device
@@ -11,18 +8,12 @@ from model.model import ViT
 import time
 import os
 
-import pandas as pd
 import numpy as np
-import cv2
-from PIL import Image
-
 
 import os
 import json
 import re
 import time
-
-from natsort import natsorted
 
 
 with open("../config/config.json", "r") as f:

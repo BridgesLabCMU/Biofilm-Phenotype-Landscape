@@ -39,7 +39,6 @@ for param in args["eval"]["dataloader"], args["eval"]["weights"]:
 
 dataloader_filename = args["eval"]["dataloader"]
 weights_filename = args["eval"]["weights"]
-hdf5_filename = f"{dataloader_filename[:dataloader_filename.find('.pth')]}.hdf5"
 
 
 data_loc = f"../{args['data_loc']}"

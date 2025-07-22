@@ -1,8 +1,5 @@
 import torch
 from torch.utils.data import DataLoader
-import torchvision.transforms as transforms
-from torchvision.models import vit_b_32, ViT_B_32_Weights
-from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, ToPILImage,  Normalize, InterpolationMode, RandomResizedCrop, GaussianBlur
 import clip
 
 from model.utils import device
@@ -11,18 +8,12 @@ from model.model import ViT
 import time
 import os
 
-import pandas as pd
 import numpy as np
-import cv2
-from PIL import Image
-
 
 import os
 import json
 import re
 import time
-
-from natsort import natsorted
 
 
 with open("../config/config.json", "r") as f:
@@ -56,10 +47,11 @@ def eval_model(model, dataloader):
     with torch.no_grad():
         embedding_dim = model.output[0].in_features
         embeddings = np.empty((len(dataloader), embedding_dim))
+        labels = np.array([])
         for i, data in enumerate(dataloader):
-            print(f"Video {i+1}/{len(dataloader)}")
+            print(f"Video {i+1} / {len(dataloader)}")
             video, strain = data[0], data[1]
-            
+            video = video.to(device)
             video_embedding = model(video, "eval")
             video_embedding = video_embedding.detach().cpu().numpy()
             embeddings[i] = video_embedding
@@ -68,6 +60,8 @@ def eval_model(model, dataloader):
 
 
 if __name__ == "__main__":
+    dataset = torch.load(f"{dataloader_loc}/{dataloader_filename}", weights_only=False)
+    dataloader = DataLoader(dataset)
     if weights_filename in os.listdir(weights_loc):
         with torch.no_grad():
             print(f"Loading finetuned vision transformer weights...")
@@ -78,16 +72,13 @@ if __name__ == "__main__":
             
             checkpoint = torch.load(f"{weights_loc}/{weights_filename}")
             vision_transformer.load_state_dict(checkpoint)
-            dataset = torch.load(f"{dataloader_loc}/{dataloader_filename}", weights_only=False)
-            dataloader = DataLoader(dataset)
-            
-            
+
             print(f"Loading finetuned VIT model took {time.time() - model_load_start} seconds")
             print()
             
             print(f"Evaluating model...")
             eval_start = time.time()
-            embeddings, labels, ids = eval_model(vision_transformer, dataloader)
+            embeddings, labels = eval_model(vision_transformer, dataloader)
             print(f"Evaluating model took {time.time() - eval_start} seconds")
             
             
@@ -95,7 +86,6 @@ if __name__ == "__main__":
             save_start = time.time()
             np.save("../processed_data/embeddings.npy", embeddings)
             np.save("../processed_data/labels.npy", labels)
-            np.save("../processed_data/wells.npy", ids)
             print(f"Saving embeddings took {time.time() - save_start} seconds")
             print()
     else:
@@ -109,14 +99,13 @@ if __name__ == "__main__":
             
             print("Evaluating model...")
             eval_start = time.time()
-            embeddings, labels, ids = eval_model(vision_transformer, f"{data_loc}", num_frames, keep_strains)
+            embeddings, labels= eval_model(vision_transformer, dataloader)
             print(f"Evaluating model took {time.time() - eval_start} seconds")
             
             print("Saving embeddings...")
             save_start = time.time()
             np.save("../processed_data/embeddings.npy", embeddings)
             np.save("../processed_data/labels.npy", labels)
-            np.save("../processed_data/wells.npy", ids)
             print(f"Saving embeddings took {time.time() - save_start} seconds")
             print()
                 

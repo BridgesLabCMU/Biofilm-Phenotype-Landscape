@@ -1,0 +1,7 @@
+#!/bin/bash
+cd /ocean/projects/bio250058p/dboyes/ImageLibrary/Biofilm-Phenotype-Landscape/src
+
+module load anaconda3
+conda activate vit
+
+python3 train.py

@@ -23,7 +23,7 @@ class ContrastiveLoss(nn.Module):
         for i in range(0, batch_size):
             loss += loss_matrix[i, i + batch_size] + loss_matrix[i + batch_size, i]
         loss /= 2 * batch_size
-        return similarity_np, loss
+        return loss
     def infoNCE(self, embeddings1, embeddings2, temperature = 1):
         batch_size = embeddings1.shape[0]
         

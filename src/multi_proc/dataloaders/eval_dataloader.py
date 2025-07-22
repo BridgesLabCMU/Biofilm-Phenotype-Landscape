@@ -1,30 +1,64 @@
 import torch
 from torch.utils.data import Dataset
-import torchvision.transforms as transforms
+from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor,  Normalize, InterpolationMode, GaussianBlur, RandomRotation, RandomHorizontalFlip, RandomVerticalFlip
 
-import time
 import os
-import h5py
 
+
+from PIL import Image
 import pandas as pd
 import numpy as np
 
 import cv2
-import h5py
 
 from natsort import natsorted
 
+class RawDictionaryDataset(Dataset):
+    def __init__(self, data_dict):
+        self.videos = []
+        self.strains = []
+        for strain, videos in data_dict.items():
+            for video in videos:
+                self.videos.append(video)
+                self.strains.append(strain)
 
+        self.videos = torch.tensor(np.stack(self.videos), dtype=torch.float32)
+        self.videos = self.videos.expand(-1, -1, 3, -1, -1)
+        self.videos = torch.tensor(np.stack(self.videos))
+        
+        
+        self.strain_names, self.strains_numeric = np.unique(self.strains, return_inverse=True)
+        
+        self.strains_numeric = torch.tensor(self.strains_numeric)
 
-def eval_model(home_dir, num_frames, keep_strains):
+        self.strains = self.strains_numeric
+            
+    def __getitem__(self, index):
+        return self.videos[index], self.strains[index]
+    
+    def __len__(self):
+        return len(self.strains)
+    
+
+def raw_transform(n_pixels):
+    return Compose([
+        Resize(n_pixels, interpolation = InterpolationMode.BICUBIC),
+        _convert_image_to_rgb,
+        ToTensor(),
+        Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+    ])
+
+def _convert_image_to_rgb(image):
+    return image.convert("RGB")
+
+def build_dataloader(home_dir, num_frames):
     """
     Builds python dictionary of input data, keys represent strain names, values represent list of images in tensor form
     
     Arguments:
     home_dir - directory location of images
     """
-
-    data_dict = {}
+    raw_data_dict = {}
 
     paths = os.listdir(home_dir)
     folders = []
@@ -52,6 +86,7 @@ def eval_model(home_dir, num_frames, keep_strains):
     for dir in images_dirs:
         path = dir
         for file in natsorted(os.listdir(path)):
+            
             if file.find("mask") == -1 and file.find("Thumb") == -1:
                 magnification = ""
                 if file.find("4x") > 0:
@@ -71,9 +106,7 @@ def eval_model(home_dir, num_frames, keep_strains):
                     well = well[:2]
                 strain = labels_dict[well]
                 
-                if strain not in keep_strains:
-                    continue
-                
+                print(i+1)
                 
                 embeddings_dir = f"{home_dir}/Embeddings/{strain}"
                 print("MAGNIFICATION: ", magnification)
@@ -88,20 +121,23 @@ def eval_model(home_dir, num_frames, keep_strains):
                                              filename=file_path,
                                              start=0,
                                              count=num_frames,
-                                             flags=cv2.IMREAD_GRAYSCALE)
-                if strain not in data_dict.keys():
-                    data_dict[strain] = []
+                                             flags=cv2.IMREAD_ANYCOLOR)
+                if strain not in raw_data_dict.keys():
+                    raw_data_dict[strain] = []
+                
+                raw_images = []
+                
+                raw_trans = raw_transform(224)
                 
                 for image in images:
-                    state = torch.get_rng_state()
-                    tensor_image = torch.tensor(image, dtype=torch.float32).unsqueeze(0).unsqueeze(0) / 255
+                    pil_image = Image.fromarray(image)
+                    raw_image = raw_trans(pil_image)
+                    raw_images.append(raw_image)
                     
-                    
-                    torch.set_rng_state(state)
-                data_dict[strain].append([torch.stack(augmented_images1), torch.stack(augmented_images2)])
-                print(i)
+                
+                raw_data_dict[strain].append(np.stack(raw_images))
+                
                 print()
                 i += 1
-    return data_dict
-
+    return raw_data_dict
 

@@ -60,7 +60,7 @@ def train_model(model, optimizer, dataloader, num_epochs, criterion):
             batch_start = time.time()
             optimizer.zero_grad()
                     
-            augmented1, augmented2
+            augmented1, augmented2 = data[0], data[1]
                             
             augmented1 = augmented1.to(device)
             augmented2 = augmented2.to(device)

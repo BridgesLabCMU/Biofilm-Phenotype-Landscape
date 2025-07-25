@@ -8,7 +8,7 @@ import os
 from PIL import Image
 import pandas as pd
 import numpy as np
-
+import re
 import cv2
 
 from natsort import natsorted
@@ -21,7 +21,6 @@ class RawDictionaryDataset(Dataset):
             for video in videos:
                 self.videos.append(video)
                 self.strains.append(strain)
-
         self.videos = torch.tensor(np.stack(self.videos), dtype=torch.float32)
         self.videos = self.videos.expand(-1, -1, 3, -1, -1)
         self.videos = torch.tensor(np.stack(self.videos))
@@ -43,6 +42,7 @@ class RawDictionaryDataset(Dataset):
 def raw_transform(n_pixels):
     return Compose([
         Resize(n_pixels, interpolation = InterpolationMode.BICUBIC),
+        CenterCrop(n_pixels),
         _convert_image_to_rgb,
         ToTensor(),
         Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
@@ -51,7 +51,7 @@ def raw_transform(n_pixels):
 def _convert_image_to_rgb(image):
     return image.convert("RGB")
 
-def build_dataloader(home_dir, num_frames):
+def build_dataloader(home_dir, num_frames, mutants_or_transposons):
     """
     Builds python dictionary of input data, keys represent strain names, values represent list of images in tensor form
     
@@ -66,20 +66,26 @@ def build_dataloader(home_dir, num_frames):
         directory = f"{home_dir}/{entry}"
         if os.path.isdir(directory):
             if "Drawer" in directory:
-                folders.append(f"{entry}")
+                folders.append(f"{directory}")
 
-    images_dirs = []
-    for folder in folders:
-        for sub_folder in os.listdir(f"{home_dir}/{folder}"):
-            if os.path.isdir(f"{home_dir}/{folder}/{sub_folder}/results_images"):
-                images_dirs.append(f"{home_dir}/{folder}/{sub_folder}/results_images")
-
-    
-    
-    labels_dict = {}
-    labels = pd.read_csv("../data/ReplicatePositions.csv")
-    for _, row in labels.iterrows():
-        labels_dict[row.iloc[0]] = row.iloc[1]
+    if mutants_or_transposons == "mutants":
+            images_dirs = []
+            for folder in folders:
+                for sub_folder in os.listdir(f"{home_dir}/{folder}"):
+                    if os.path.isdir(f"{home_dir}/{folder}/{sub_folder}/results_images"):
+                        images_dirs.append(f"{home_dir}/{folder}/{sub_folder}/results_images")
+    elif mutants_or_transposons == "transposons":
+        images_dirs = []
+        for folder in natsorted(folders):
+            for sub_folder in [f.path for f in os.scandir(folder) if f.is_dir()]:
+                if "Processed images" in sub_folder:
+                    images_dirs.append(f"{sub_folder}")
+        
+    if mutants_or_transposons == "mutants": 
+        labels_dict = {}
+        labels = pd.read_csv("../data/ReplicatePositions.csv")
+        for _, row in labels.iterrows():
+            labels_dict[row.iloc[0]] = row.iloc[1]
 
 
     i = 0
@@ -100,30 +106,30 @@ def build_dataloader(home_dir, num_frames):
                 elif file.find("40x") > 0:
                     magnification = "40x"
                     continue
-                
-                well = file[:3]
-                if well[-1] == '_':
-                    well = well[:2]
-                strain = labels_dict[well]
-                
+                if mutants_or_transposons == "mutants":
+                    well = file[:3]
+                    if well[-1] == '_':
+                        well = well[:2]
+                    strain = labels_dict[well] 
+                elif mutants_or_transposons == "transposons":
+                    well_id = file[:file.find("_")]
+                    plate_well = f"{i+1}-{well_id}"
                 print(i+1)
                 
-                embeddings_dir = f"{home_dir}/Embeddings/{strain}"
-                print("MAGNIFICATION: ", magnification)
-                if not os.path.exists(f"{embeddings_dir}/{magnification}"):
-                    os.makedirs(f"{embeddings_dir}/{magnification}")
-                embeddings_dir = f"{home_dir}/Embeddings/{strain}/{magnification}"
-
                 image_stack = []
                 file_path = f"{path}/{file}"
-                print(f"Reading image stack for {file_path}, strain {strain}")
+                print(f"Reading image stack for {file_path}")
                 _,images = cv2.imreadmulti(mats=image_stack,
                                              filename=file_path,
                                              start=0,
                                              count=num_frames,
                                              flags=cv2.IMREAD_ANYCOLOR)
-                if strain not in raw_data_dict.keys():
-                    raw_data_dict[strain] = []
+                if mutants_or_transposons == "mutants":
+                    if strain not in raw_data_dict.keys():
+                        raw_data_dict[strain] = []
+                elif mutants_or_transposons == "transposons":
+                    if plate_well not in raw_data_dict.keys():
+                        raw_data_dict[plate_well] = []
                 
                 raw_images = []
                 
@@ -134,9 +140,10 @@ def build_dataloader(home_dir, num_frames):
                     raw_image = raw_trans(pil_image)
                     raw_images.append(raw_image)
                     
-                
-                raw_data_dict[strain].append(np.stack(raw_images))
-                
+                if mutants_or_transposons == "mutants":
+                    raw_data_dict[strain].append(np.stack(raw_images))
+                elif mutants_or_transposons == "transposons":
+                    raw_data_dict[plate_well].append(np.stack(raw_images))
                 print()
                 i += 1
     return raw_data_dict

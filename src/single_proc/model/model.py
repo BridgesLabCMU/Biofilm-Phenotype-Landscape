@@ -1,5 +1,5 @@
 from .utils import *
-
+from torch import nn
 
 
 def PositionalEncoding(embeddings, max_len=128):

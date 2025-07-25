@@ -22,7 +22,7 @@ class RawDictionaryDataset(Dataset):
                 self.videos.append(video)
                 self.strains.append(strain)
         self.videos = torch.tensor(np.stack(self.videos), dtype=torch.float32)
-        self.videos = self.videos.expand(-1, -1, 3, -1, -1)
+        self.videos = self.videos.expand(-1, 3, -1, -1)
         self.videos = torch.tensor(np.stack(self.videos))
         
         

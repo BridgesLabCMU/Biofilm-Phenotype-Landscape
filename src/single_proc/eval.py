@@ -50,24 +50,22 @@ def eval_model(model, dataloader):
     """
     with torch.no_grad():
         embedding_dims = model.output[0].in_features
-        embeddings = np.empty((len(dataloader), embedding_dims))
+        embeddings = torch.empty((len(dataloader), embedding_dims), device=device)
         for i, data in enumerate(dataloader):
-            print(f"{i}/{len(dataloader)}")
+            print(f"{i+1}/{len(dataloader)}")
             
             video = data[0]
             video = video.to(device)
             embedding = model(video, "eval")
+            print(embedding.shape)
             embeddings[i] = embedding
-    
+    embeddings = embeddings.detach().cpu().numpy()    
     return embeddings
 
 
 if __name__ == "__main__":
     dataset = torch.load(f"{dataloader_loc}/{dataloader_filename}", weights_only=False)
     dataloader = DataLoader(dataset)
-    print(dataset.keys())
-    print(len(dataset))
-    exit()
     if weights_filename in os.listdir(weights_loc):
         print(f"Loading finetuned vision transformer weights...")
         model_load_start = time.time()

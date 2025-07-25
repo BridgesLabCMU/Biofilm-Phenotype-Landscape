@@ -33,12 +33,12 @@ class AugmentedDictionaryDataset(Dataset):
                 self.strains.append(strain)
         
         self.augmented_videos1 = torch.tensor(np.stack(self.augmented_videos1), dtype=torch.float32)
-        self.augmented_videos1 = self.augmented_videos1.expand(-1, -1, 3, -1, -1)
+        self.augmented_videos1 = self.augmented_videos1.expand(-1, 3, -1, -1)
         self.augmented_videos1 = torch.tensor(np.stack(self.augmented_videos1))
 
         self.augmented_videos2 = torch.tensor(np.stack(self.augmented_videos2), dtype=torch.float32)
         self.augmented_videos2 = self.augmented_videos2.squeeze(2)
-        self.augmented_videos2 = self.augmented_videos2.expand(-1, -1, 3, -1, -1)
+        self.augmented_videos2 = self.augmented_videos2.expand(-1, 3, -1, -1)
         self.augmented_videos2 = torch.tensor(np.stack(self.augmented_videos2))
         
         self.strain_names, self.strains_numeric = np.unique(self.strains, return_inverse=True)

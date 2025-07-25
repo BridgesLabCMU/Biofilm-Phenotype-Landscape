@@ -18,7 +18,7 @@ import time
 
 
 
-with open("../config/config.json", "r") as f:
+with open("../../config/config.json", "r") as f:
     args = json.load(f)
 f.close()
 
@@ -35,9 +35,9 @@ weights_filename = args["train"]["weights"]
 hdf5_filename = f"{dataloader_filename[:dataloader_filename.find('.pth')]}.hdf5"
 
 
-data_loc = f"../{args['data_loc']}"
-dataloader_loc = f"../{args['dataloader_loc']}"
-weights_loc = f"../{args['weights_loc']}"
+data_loc = f"{args['data_loc']}"
+dataloader_loc = f"{args['dataloader_loc']}"
+weights_loc = f"{args['weights_loc']}"
 
 
 def eval_model(model, dataloader):

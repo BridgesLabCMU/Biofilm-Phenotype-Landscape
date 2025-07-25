@@ -1,5 +1,5 @@
 from .utils import *
-
+from torch import nn
 
 
 def PositionalEncoding(embeddings, max_len=128):
@@ -32,7 +32,7 @@ class ViT(nn.Module):
         self.model = model
         
         self.head = nn.Sequential(
-            nn.Linear(in_features=512, out_features=embedding_dims, dtype=torch.half),
+            nn.Linear(in_features=512, out_features=embedding_dims, dtype=torch.float32),
         )
         
         self.output = nn.Sequential(
@@ -47,34 +47,17 @@ class ViT(nn.Module):
         
         
     def forward(self, x, mode):
-        # x shape - num_frames, channels, height, width
-        
-
-        
-        
-
-        # x = x.last_hidden_state
-        # x = PositionalEncoding(x)
-        
         # training mode - compute loss on projection embeddings
         if mode == "train":
-            embeddings = torch.empty(x.shape[0], 128, device=device)
-            for i, image in enumerate(x):
-                # print(round(torch.cuda.memory_allocated() / 1000000000, 2))
-                # print(f"Video {i}/{len(x)}")
-                frame_embeddings = self.model.encode_image(image).to(device)
-                frame_embeddings = self.head(frame_embeddings)
-                video_embeddings = PositionalEncoding(frame_embeddings).to(device)
-                projection_x = self.projection(video_embeddings)
-                embeddings[i] = projection_x
-            return embeddings
+            embeddings = self.model.encode_image(x).to(device)
+            video_embeddings = PositionalEncoding(embeddings).to(device)
+            video_embeddings = self.head(video_embeddings)
+            projection_x = self.projection(video_embeddings)
+            return projection_x
         # eval mode - evaluate on network embeddings
         elif mode == "eval": 
-            embeddings = torch.empty(x.shape[0], 128, device=device)
-            for i, image in enumerate(x):
-                frame_embeddings = self.model.encode_image(image).to(device)
-                frame_embeddings = self.head(frame_embeddings)
-                embeddings[i] = frame_embeddings
-            x = PositionalEncoding(embeddings).to(device)
-            return x
+            embeddings = self.model.encode_image(x).to(device)
+            video_embeddings = PositionalEncoding(embeddings).to(device)
+            video_embeddings = self.head(video_embeddings)
+            return video_embeddings
         

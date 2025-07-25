@@ -49,15 +49,13 @@ def eval_model(model, dataloader):
     keep_strains - strains to keep in analysis
     """
     with torch.no_grad():
-        embedding_dims = model.output[0].in_features
+        embedding_dims = model.head[0].out_features
         embeddings = torch.empty((len(dataloader), embedding_dims), device=device)
         for i, data in enumerate(dataloader):
             print(f"{i+1}/{len(dataloader)}")
-            
             video = data[0]
             video = video.to(device)
             embedding = model(video, "eval")
-            print(embedding.shape)
             embeddings[i] = embedding
     embeddings = embeddings.detach().cpu().numpy()    
     return embeddings

@@ -1,14 +1,14 @@
 {
-    "data_loc": "../../Final_Re-Imaging",
+    "data_loc": "../../data",
     "dataloader_loc": "../../dataloaders",
     "weights_loc": "../../weights",
-    "mutants_or_transposons": "transposons",
+    "mutants_or_transposons": "mutants",
     "train" : {
-        "dataloader": "train_dataset.pth",
-        "weights": "weights.pth"
+        "dataloader": "mutant_train_dataset.pth",
+        "weights": "final_weights.pth"
     },
     "eval" : {
-        "dataloader": "eval_dataset.pth",
-        "weights": "weights.pth"
+        "dataloader": "mutant_eval_dataset.pth",
+        "weights": "final_weights.pth"
     }
 }

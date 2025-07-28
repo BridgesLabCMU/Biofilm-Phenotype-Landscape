@@ -18,11 +18,11 @@ import time
 
 
 
-with open("../../config/config.json", "r") as f:
+with open("../../config/eval_config.json", "r") as f:
     args = json.load(f)
 f.close()
 
-for param in args["train"]["dataloader"], args["train"]["weights"]:
+for param in [args['dataloader'], args['weights']]:
     if not param:
         continue
     regex_match = re.match(r".*\.pth", param)
@@ -30,8 +30,8 @@ for param in args["train"]["dataloader"], args["train"]["weights"]:
         print("ERROR: Input and output files must follow the format filename.pth")
         exit()
 
-dataloader_filename = args["train"]["dataloader"]
-weights_filename = args["train"]["weights"]
+dataloader_filename = args['dataloader']
+weights_filename = args['weights']
 
 
 data_loc = args['data_loc']
@@ -51,14 +51,17 @@ def eval_model(model, dataloader):
     with torch.no_grad():
         embedding_dims = model.head[0].out_features
         embeddings = torch.empty((len(dataloader), embedding_dims), device=device)
+        labels = []
         for i, data in enumerate(dataloader):
             print(f"{i+1}/{len(dataloader)}")
-            video = data[0]
+            video, label = data[0], data[1]
             video = video.to(device)
             embedding = model(video, "eval")
             embeddings[i] = embedding
-    embeddings = embeddings.detach().cpu().numpy()    
-    return embeddings
+            labels.append(label)
+    embeddings = embeddings.detach().cpu().numpy()
+    labels = np.array(labels)
+    return embeddings, labels
 
 
 if __name__ == "__main__":
@@ -87,13 +90,14 @@ if __name__ == "__main__":
     
     print(f"Evaluating model...")
     eval_start = time.time()
-    embeddings = eval_model(vision_transformer, dataloader)
+    embeddings, labels = eval_model(vision_transformer, dataloader)
     print(f"Evaluating model took {time.time() - eval_start} seconds")
     
     
     print("Saving embeddings...")
     save_start = time.time()
     np.save("../../processed_data/embeddings.npy", embeddings)
+    np.save("../../processed_data/labels.npy", labels)
     print(f"Saving embeddings took {time.time() - save_start} seconds")
     print()
             

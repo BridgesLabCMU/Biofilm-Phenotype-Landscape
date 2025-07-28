@@ -18,11 +18,11 @@ import time
 
 
 
-with open("../../config/config.json", "r") as f:
+with open("../../config/eval_config.json", "r") as f:
     args = json.load(f)
 f.close()
 
-for param in args["train"]["dataloader"], args["train"]["weights"]:
+for param in [args['dataloader'], args['weights']]:
     if not param:
         continue
     regex_match = re.match(r".*\.pth", param)
@@ -30,14 +30,13 @@ for param in args["train"]["dataloader"], args["train"]["weights"]:
         print("ERROR: Input and output files must follow the format filename.pth")
         exit()
 
-dataloader_filename = args["train"]["dataloader"]
-weights_filename = args["train"]["weights"]
-hdf5_filename = f"{dataloader_filename[:dataloader_filename.find('.pth')]}.hdf5"
+dataloader_filename = args["dataloader"]
+weights_filename = args["weights"]
 
 
-data_loc = f"{args['data_loc']}"
-dataloader_loc = f"{args['dataloader_loc']}"
-weights_loc = f"{args['weights_loc']}"
+data_loc = args['data_loc']
+dataloader_loc = args['dataloader_loc']
+weights_loc = args['weights_loc']
 
 
 def eval_model(model, dataloader):
@@ -50,17 +49,20 @@ def eval_model(model, dataloader):
     keep_strains - strains to keep in analysis
     """
     with torch.no_grad():
+        embedding_dims = model.output[0].in_features
+        embeddings = torch.empty((len(dataloader), embedding_dims), device=device)
+        labels = []
         for i, data in enumerate(dataloader):
             print(f"{i}/{len(dataloader)}")
-            embedding_dims = model.output[0].in_features
             
-            embeddings = np.empty((len(dataloader), embedding_dims))
             
-            video = data[0]
+            video, label = data[0], data[1]
             embedding = model(video)
             embeddings[i] = embedding
-    
-    return embeddings
+            labels.append(label)
+        embeddings = embeddings.detach().cpu.numpy()
+        labels = np.array(labels)
+    return embeddings, labels
 
 
 if __name__ == "__main__":
@@ -91,13 +93,14 @@ if __name__ == "__main__":
         
         print(f"Evaluating model...")
         eval_start = time.time()
-        embeddings, labels, ids = eval_model(vision_transformer, dataloader)
+        embeddings, labels= eval_model(vision_transformer, dataloader)
         print(f"Evaluating model took {time.time() - eval_start} seconds")
         
         
         print("Saving embeddings...")
         save_start = time.time()
         np.save("../processed_data/embeddings.npy", embeddings)
+        np.save("../../processed_data/labels.npy", labels)
         print(f"Saving embeddings took {time.time() - save_start} seconds")
         print()
             

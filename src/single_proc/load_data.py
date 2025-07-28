@@ -15,7 +15,7 @@ f.close()
 
 NUM_FRAMES = 25
 
-for param in [args["train"]["dataloader"], args["train"]["weights"]]:
+for param in [args["dataloader"], args["weights"]]:
     if not param:
         continue
     regex_match = re.match(r".*\.pth", param)
@@ -23,9 +23,9 @@ for param in [args["train"]["dataloader"], args["train"]["weights"]]:
         print("ERROR: Input and output files must follow the format filename.pth")
         exit()
 
-train_dataloader_filename = args["train"]["dataloader"]
-eval_dataloader_filename = args["eval"]["dataloader"]
-weights_filename = args["train"]["weights"]
+train_dataloader_filename = args["dataloader"]
+eval_dataloader_filename = args["dataloader"]
+weights_filename = args["weights"]
 mutants_or_transposons = args["mutants_or_transposons"]
 
 data_loc = args['data_loc']

@@ -26,11 +26,11 @@ BATCH_SIZE = 54
 CRITERION = SimCLR()
 
 
-with open("../../config/config.json", "r") as f:
+with open("../../config/train_config.json", "r") as f:
     args = json.load(f)
 f.close()
 
-for param in [args["train"]["dataloader"], args["train"]["weights"]]:
+for param in [args['dataloader'], args['weights']]:
     if not param:
         continue
     regex_match = re.match(r".*\.pth", param)
@@ -38,14 +38,13 @@ for param in [args["train"]["dataloader"], args["train"]["weights"]]:
         print("ERROR: Input and output files must follow the format filename.pth")
         exit()
 
-dataloader_filename = args["train"]["dataloader"]
-weights_filename = args["train"]["weights"]
-hdf5_filename = f"{dataloader_filename[:dataloader_filename.find('.pth')]}.hdf5"
+dataloader_filename = args['dataloader']
+weights_filename = args['weights']
 
 
-data_loc = f"{args['data_loc']}"
-dataloader_loc = f"{args['dataloader_loc']}"
-weights_loc = f"{args['weights_loc']}"
+data_loc = args['data_loc']
+dataloader_loc = args['dataloader_loc']
+weights_loc = args['weights_loc']
 
 
 

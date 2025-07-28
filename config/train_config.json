@@ -1,0 +1,8 @@
+{
+    "data_loc": "../../data",
+    "dataloader_loc": "../../dataloaders",
+    "weights_loc": "../../weights",
+    "mutants_or_transposons": "mutants",
+    "dataloader": "mutant_train_dataset.pth",
+    "weights": "final_weights.pth"
+}

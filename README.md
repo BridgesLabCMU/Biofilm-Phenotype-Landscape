@@ -40,10 +40,11 @@ python3 load_data.py
 ### 2.1 - Multi-process training (recommended)
 
 - For use on computing cluster setup, adjust BATCH_SIZE as needed
-
+- Submits SLURM job using ```encode``` script
+- Adjust requested resources in ```encode``` as needed
 ```
 cd src/multi_proc
-python3 train.py
+sbatch encode
 ```
 ### 2.2 - Single-process training 
 

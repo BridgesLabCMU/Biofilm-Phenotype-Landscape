@@ -56,6 +56,12 @@ python3 train.py
 ```
 ## 3 - Evaluation 
 
+- Embeddings and labels saved in ./processed_data
+- Embeddings saved in ```embeddings.npy```
+- Labels saved in ```labels.npy```
+- Labels for mutants are strain identifiers
+- Labels for transposons are plate and well identifiers
+
 - If weights file in config does not exist in ./weights, will use default pretrained weights from OpenAI CLIP model
 - Ensure that enough memory is available to load entire dataset
     

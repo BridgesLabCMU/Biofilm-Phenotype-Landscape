@@ -114,7 +114,6 @@ def main():
                 rank=rank
             ) 
             vit = DistributedDataParallel(vit, device_ids=[local_rank], output_device=local_rank).module
-            sampler = DistributedSampler()
         
         
         print(f"Loading pre-trained VIT model took {time.time() - model_load_start} seconds")

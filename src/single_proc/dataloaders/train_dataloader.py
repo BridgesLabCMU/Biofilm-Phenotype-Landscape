@@ -126,8 +126,9 @@ def build_dataloader(home_dir, num_frames, mutants_or_transposons, keep_strains)
                     if strain not in keep_strains:
                         continue
                 if mutants_or_transposons == "transposons":
+                    plate_id = re.search(r"Plate\d+", path).group(0)
                     well_id = file[:file.find("_")]
-                    plate_well = f"{i+1}-{well_id}"
+                    plate_well = f"{plate_id}-{well_id}"
                 print(i+1)
                 
                 image_stack = []

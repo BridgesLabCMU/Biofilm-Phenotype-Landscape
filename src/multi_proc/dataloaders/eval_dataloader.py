@@ -51,7 +51,7 @@ def raw_transform(n_pixels):
 def _convert_image_to_rgb(image):
     return image.convert("RGB")
 
-def build_dataloader(home_dir, num_frames, mutants_or_transposons):
+def build_dataloader(home_dir, num_frames, mutants_or_transposons, keep_strains):
     """
     Description: Builds python dictionary of input data, keys represent strain names, values represent list of images in tensor form
     Arguments:
@@ -68,13 +68,12 @@ def build_dataloader(home_dir, num_frames, mutants_or_transposons):
         if os.path.isdir(directory):
             if "Drawer" in directory:
                 folders.append(f"{directory}")
-
     if mutants_or_transposons == "mutants":
-            images_dirs = []
-            for folder in folders:
-                for sub_folder in os.listdir(f"{home_dir}/{folder}"):
-                    if os.path.isdir(f"{home_dir}/{folder}/{sub_folder}/results_images"):
-                        images_dirs.append(f"{home_dir}/{folder}/{sub_folder}/results_images")
+        images_dirs = []
+        for folder in natsorted(folders):
+            for sub_folder in [f.path for f in os.scandir(folder) if f.is_dir()]:
+                if "Plate" in sub_folder:
+                    images_dirs.append(f"{sub_folder}/results_images")
     elif mutants_or_transposons == "transposons":
         images_dirs = []
         for folder in natsorted(folders):
@@ -84,7 +83,7 @@ def build_dataloader(home_dir, num_frames, mutants_or_transposons):
         
     if mutants_or_transposons == "mutants": 
         labels_dict = {}
-        labels = pd.read_csv("../data/ReplicatePositions.csv")
+        labels = pd.read_csv(f"{home_dir}/ReplicatePositions.csv")
         for _, row in labels.iterrows():
             labels_dict[row.iloc[0]] = row.iloc[1]
 
@@ -93,28 +92,30 @@ def build_dataloader(home_dir, num_frames, mutants_or_transposons):
     for dir in images_dirs:
         path = dir
         for file in natsorted(os.listdir(path)):
-            
             if file.find("mask") == -1 and file.find("Thumb") == -1:
-                magnification = ""
-                if file.find("4x") > 0:
-                    magnification = "4x"
-                    continue
-                elif file.find("10x") > 0:
-                    magnification = "10x"
-                elif file.find("20x") > 0:
-                    magnification = "20x"
-                    continue
-                elif file.find("40x") > 0:
-                    magnification = "40x"
-                    continue
                 if mutants_or_transposons == "mutants":
+                    magnification = ""
+                    if file.find("4x") > 0:
+                        magnification = "4x"
+                        continue
+                    elif file.find("10x") > 0:
+                        magnification = "10x"
+                    elif file.find("20x") > 0:
+                        magnification = "20x"
+                        continue
+                    elif file.find("40x") > 0:
+                        magnification = "40x"
+                        continue
                     well = file[:3]
                     if well[-1] == '_':
                         well = well[:2]
                     strain = labels_dict[well] 
+                    if strain not in keep_strains:
+                        continue
                 elif mutants_or_transposons == "transposons":
+                    plate_id = re.search(r"Plate\d+", path).group(0)
                     well_id = file[:file.find("_")]
-                    plate_well = f"{i+1}-{well_id}"
+                    plate_well = f"{plate_id}-{well_id}"
                 print(i+1)
                 
                 image_stack = []

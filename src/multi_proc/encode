@@ -7,7 +7,7 @@
 # echo commands to stdout
 set -x
 
-cd /ocean/projects/bio250058p/dboyes/ImageLibrary/Biofilm-Phenotype-Landscape/src
+cd /ocean/projects/bio250058p/dboyes/ImageLibrary/Biofilm-Phenotype-Landscape/src/multi_proc/
 
 module load anaconda3
 conda activate vit

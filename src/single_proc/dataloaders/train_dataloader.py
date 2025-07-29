@@ -35,12 +35,6 @@ class AugmentedDictionaryDataset(Dataset):
 
         self.augmented_videos2 = torch.tensor(np.stack(self.augmented_videos2), dtype=torch.float32)
         
-        self.strain_names, self.strains_numeric = np.unique(self.strains, return_inverse=True)
-        
-        self.strains_numeric = torch.tensor(self.strains_numeric)
-
-        self.strains = self.strains_numeric
-
     def __getitem__(self, index):
         return self.augmented_videos1[index], self.augmented_videos2[index], self.strains[index]
     
@@ -128,6 +122,7 @@ def build_dataloader(home_dir, num_frames, mutants_or_transposons, keep_strains)
                     if well[-1] == '_':
                         well = well[:2]
                     strain = labels_dict[well]
+                    print(strain)
                     if strain not in keep_strains:
                         continue
                 if mutants_or_transposons == "transposons":

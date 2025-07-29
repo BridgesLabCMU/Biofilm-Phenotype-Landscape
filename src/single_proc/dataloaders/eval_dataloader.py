@@ -28,12 +28,6 @@ class RawDictionaryDataset(Dataset):
                 self.videos.append(video)
                 self.strains.append(strain)
         self.videos = torch.tensor(np.stack(self.videos), dtype=torch.float32)
-        
-        self.strain_names, self.strains_numeric = np.unique(self.strains, return_inverse=True)
-        
-        self.strains_numeric = torch.tensor(self.strains_numeric)
-
-        self.strains = self.strains_numeric
             
     def __getitem__(self, index):
         return self.videos[index], self.strains[index]

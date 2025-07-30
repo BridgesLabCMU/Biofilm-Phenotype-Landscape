@@ -114,6 +114,7 @@ def build_dataloader(home_dir, num_frames, mutants_or_transposons, keep_strains)
                         continue
                 elif mutants_or_transposons == "transposons":
                     plate_id = re.search(r"Plate\d+", path).group(0)
+                    plate_id = plate_id[plate_id.find("e") + 1:]
                     well_id = file[:file.find("_")]
                     plate_well = f"{plate_id}-{well_id}"
                 print(i+1)
